@@ -101,6 +101,26 @@ reproduced at all (no noise texture asset, and `react-native-svg`'s
 `feTurbulence` support isn't reliable cross-platform) — only the
 moving-gradient half of "living gradient" is real.
 
+**Web is the one platform where this approximation isn't necessary** — a
+real browser has a real `<canvas>`/WebGL context, no custom dev client
+required — so `LiveGradientBackground.web.tsx` is a second, platform-specific
+implementation Metro picks automatically for web bundles (plain `.tsx` stays
+the fallback used by iOS/Android). It ports the Claude Design mockups' own
+vertex/fragment GLSL (simplex noise, grain, vignette) verbatim, driving the
+same `u_colors`/`u_bg` uniforms from the tone's `glow`/`screen[2]` tokens the
+native gradient already uses, so the two variants read as the same design at
+different fidelities rather than two different designs. Same public props as
+the native file — callers never branch on platform.
+
+If you ever see this render as a flat black canvas, it's very likely a
+headless-Chrome testing artifact, not a code bug: recent Chrome versions
+disable software WebGL (SwiftShader) in headless mode unless you pass
+`--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader` —
+confirmed by adding temporary `gl.getShaderParameter`/`getProgramParameter`
+error logging and an on-screen debug overlay, which showed
+`canvas.getContext('webgl')` itself returning `null` until those flags were
+added. A real user's browser needs no such flag.
+
 ```ts
 interface LiveGradientBackgroundProps {
   tone?: GemTone // default the app's defaultGemTone
@@ -296,3 +316,4 @@ common case where a `ListRow`'s own title already identifies the person.
 - **VoiceOver/TalkBack walkthroughs weren't performed end-to-end** — the accessibility work (roles, states, labels, reduced motion, hit targets) is verified by code review and a visual on-device check, not a recorded screen-reader pass.
 - **`LiveGradientBackground` doesn't reproduce film grain** — see its own section above. Only the moving-gradient half of the original design's "living gradient" is real.
 - **`app/verify-phone.tsx` has no design yet** — built with the existing kit to stay visually consistent, but should be replaced once a real design for it exists (see `docs/authentication.md`'s Sign-up flow section).
+- **Web platform support (`react-native-web`) is new and only smoke-tested**, not verified with the same rigor as iOS: `expo-secure-store` has no web implementation (routed through `lib/storage.ts`'s `localStorage` fallback instead), `GlassSurface`'s blur/tint layers need an explicit `zIndex: -1` to stay behind content on web (a real CSS stacking rule with no native equivalent), and font loading, `BottomSheet`'s modal behavior, and real mouse/touch gesture interaction on web haven't been separately verified yet.
