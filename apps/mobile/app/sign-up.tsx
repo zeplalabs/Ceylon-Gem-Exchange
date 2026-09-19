@@ -134,7 +134,9 @@ export default function SignUpScreen() {
           <GlassSurface radius={14} clarity={55} style={styles.brandTile}>
             <GemIcon size={20} ink={tone.ink} inkSoft={iconSoft} />
           </GlassSurface>
-          <Text style={[styles.brandText, { fontFamily: fonts.extrabold }]}>Ceylon Gems</Text>
+          <Text style={[styles.brandText, { fontFamily: fonts.extrabold }]}>
+            Ceylon Gem Exchange
+          </Text>
         </View>
 
         <KeyboardAvoidingView

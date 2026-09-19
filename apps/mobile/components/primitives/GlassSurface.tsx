@@ -5,6 +5,7 @@ import {
   StyleSheet,
   View,
   type AccessibilityRole,
+  type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
@@ -26,6 +27,8 @@ interface GlassSurfaceProps {
   radius?: number
   /** e.g. "tablist" when this surface is the track for a SegmentedControl/SegmentedTabs group. */
   accessibilityRole?: AccessibilityRole
+  /** For measuring the surface itself, e.g. a SegmentedControl track sizing a sliding indicator. */
+  onLayout?: (event: LayoutChangeEvent) => void
   style?: StyleProp<ViewStyle>
   children?: ReactNode
 }
@@ -37,23 +40,36 @@ interface GlassSurfaceProps {
 // BlurView (the actual blur), a translucent tint View on top of it, and a
 // border whose top edge is overridden to a brighter rgba than the rest.
 // Saturation boost has no RN equivalent and is dropped.
+//
+// `intensity` and `fillAlpha` are NOT a literal transcription of the web
+// mockup's `blur(px)` value — expo-blur's `intensity` (0-100) isn't the
+// same unit as a CSS blur radius, and a CSS-literal range (14-40) reads as
+// barely-there on a real BlurView. These two formulas instead come from the
+// project's own native-specific reference port (native/theme.ts's
+// `glass()`), which recalibrates for real BlurView output: intensity rises
+// with clarity (28-70) rather than falling, trading less tint fill for more
+// visible blur passthrough. `rimAlpha`/`sheenAlpha` are unaffected — those
+// two already matched exactly between the CSS mockup and the native
+// reference.
 export function GlassSurface({
   clarity = 55,
   rim = neutral.glassRim,
   radius = radii.md,
   accessibilityRole,
+  onLayout,
   style,
   children,
 }: GlassSurfaceProps) {
   const c = Math.max(0, Math.min(100, clarity)) / 100
-  const fillAlpha = 0.14 - c * 0.11
+  const fillAlpha = 0.14 - c * 0.09
   const rimAlpha = 0.1 + c * 0.22
   const sheenAlpha = 0.16 + c * 0.3
-  const intensity = Math.round(20 + c * 60)
+  const intensity = Math.round(28 + c * 42)
 
   return (
     <View
       accessibilityRole={accessibilityRole}
+      onLayout={onLayout}
       style={[styles.clip, { borderRadius: radius }, style]}
     >
       <BlurView

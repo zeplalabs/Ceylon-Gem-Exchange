@@ -7,7 +7,15 @@ import {
   type GemTone,
 } from '@ceylon-gems/ui-tokens'
 import { type ReactNode } from 'react'
-import { Modal as RNModal, Pressable, StyleSheet, Text, View } from 'react-native'
+import {
+  Modal as RNModal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { Button, GhostButton } from './Button'
 import { GlassSurface } from './primitives/GlassSurface'
@@ -19,6 +27,13 @@ interface BottomSheetProps {
   closeAccessibilityLabel?: string
   /** Top corner radius — the mockups' sheetStyle uses a bigger radius (30) than the general radii.lg default. */
   radius?: number
+  /**
+   * Overrides the sheet's default padding/height — e.g. a filter sheet
+   * needs a fixed height (`76%`) and zero outer padding so its own
+   * sections (header/scrollable body/footer) can each carry their own
+   * mockup-exact padding instead of one uniform wrapper value.
+   */
+  style?: StyleProp<ViewStyle>
   children: ReactNode
 }
 
@@ -33,6 +48,7 @@ export function BottomSheet({
   onClose,
   closeAccessibilityLabel = 'Close',
   radius = radii.lg,
+  style,
   children,
 }: BottomSheetProps) {
   return (
@@ -44,7 +60,7 @@ export function BottomSheet({
         accessibilityRole="button"
       />
       <View style={styles.sheetWrap} accessibilityViewIsModal>
-        <GlassSurface clarity={55} radius={radius} style={styles.sheet}>
+        <GlassSurface clarity={55} radius={radius} style={[styles.sheet, style]}>
           <View style={styles.grabber} />
           {children}
         </GlassSurface>
@@ -104,13 +120,17 @@ export function ConfirmDialog({
 }
 
 const styles = StyleSheet.create({
+  // Exact value from the mockups' scrimStyle — a distinct color/alpha from
+  // the general screen overlay (neutral.overlay), not the same token. Its
+  // 3px backdrop blur isn't reproduced (same no-blur-on-plain-overlays gap
+  // as everywhere else outside GlassSurface).
   backdrop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: neutral.overlay[2],
+    backgroundColor: 'rgba(4,8,16,0.55)',
   },
   sheetWrap: {
     marginTop: 'auto',

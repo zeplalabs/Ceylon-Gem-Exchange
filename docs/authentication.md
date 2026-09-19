@@ -21,7 +21,7 @@ The API never asks Clerk "what's this user's role" — role lives in our own
 database, because it's ours to define and query alongside everything else
 (listings, orders, etc.) in Phase 1.
 
-## The five flows
+## The six flows
 
 ### 1. Sign-in (mobile)
 
@@ -51,18 +51,66 @@ method name and return shape.
 signUp.password({ phoneNumber, password, firstName, lastName, emailAddress? })
   --status !== 'complete'-->  signUp.verifications.sendPhoneCode()
   --navigate-->  /verify-phone
-  --signUp.verifications.verifyPhoneCode({ code })-->  signUp.finalize()
+  --signUp.verifications.verifyPhoneCode({ code })-->  status === 'complete'
+  --email supplied but unverified-->  signUp.verifications.sendEmailLink({ verificationUrl })
+  --navigate-->  /verify-email  --waitForEmailLinkVerification() resolves-->  signUp.finalize()
+  --no email, or already verified-->  signUp.finalize()
   --session active-->  redirect home
 ```
 
-`/verify-phone` is a placeholder screen (no design provided for it yet) —
-built with the same component kit and gem-tone theming so it doesn't look
-out of place, but it should be replaced once a real design exists. It reads
-`signUp.phoneNumber` directly off the same reactive `signUp` object rather
-than needing it passed through navigation params, since Clerk's client SDK
+`/verify-phone` ports the real "Ceylon Gem Exchange Verification.dc.html"
+design — its own on-screen numeric keypad rather than the OS keyboard, so
+entry is fully tap-driven. Its cell count is 6, not the mockup's 4: Clerk's
+`phone_code` strategy always issues a 6-digit code, and the mockup's 4-cell
+layout is a generic prototype assumption not tied to Clerk, so cell count
+follows the real code length instead. It reads `signUp.phoneNumber` directly
+off the same reactive `signUp` object rather than needing it passed through
+navigation params, since Clerk's client SDK
 keeps sign-up state in memory for the lifetime of the `ClerkProvider`.
 
-### 3. User sync (webhook)
+`/verify-email` ports "Ceylon Gem Exchange Email Verification.dc.html" —
+Clerk's `email_link` strategy (no code-entry UI at all, just "Open mail
+app" + resend), reached only when a sign-up supplied an email (it's
+optional, so `signUp.status` is already `'complete'` without it — this
+screen is a non-blocking nudge inserted before finalizing, not a gate).
+`signUp.verifications.waitForEmailLinkVerification()` is Clerk's own
+purpose-built helper for this: it polls the sign-up resource server-side
+and resolves once the link is confirmed regardless of which device opened
+it, so the screen needs no deep-link callback route of its own —
+`verificationUrl` (built with `Linking.createURL('/')`) only has to be a
+resolvable post-tap redirect target, since the verification itself
+completes on Clerk's own domain, the link's first hop. Both the nav-row
+back button and "Change email" finalize-and-continue rather than actually
+letting the user edit the address — there's no Edit Profile/Account
+Settings screen yet for that to hand off to.
+
+### 3. Password reset (mobile)
+
+`apps/mobile/app/forgot-password.tsx` — reached from sign-in.tsx's existing
+"Forgot password?" link (a `Link` that was already pointing at
+`/forgot-password` before this route existed). Uses `useSignIn()`, the
+**Sign-In-side counterpart** to sign-up's Future signals API: same
+`{error}`-returning-promise shape, different resource. Password reset has
+no `signIn.password()` equivalent to lean on for creating the resource, so
+the flow always starts with an explicit `signIn.create({ identifier })`:
+
+```
+signIn.create({ identifier })
+  --isMobile-->  signIn.resetPasswordPhoneCode.sendCode()
+  --isEmail-->   signIn.resetPasswordEmailCode.sendCode()
+  --navigate, channel as a route param-->  /reset-password
+  --resetPasswordXCode.verifyCode({ code })-->  status === 'needs_new_password'
+  --resetPasswordXCode.submitPassword({ password })-->  status === 'complete'
+  --signIn.finalize()-->  redirect home
+```
+
+`/reset-password` (the code + new-password step) is a **placeholder** —
+the same situation `/verify-phone` was in before its design was ported;
+only Forgot Password's design was asked for. `channel` has to travel as a
+route param because nothing on the `signIn` resource itself records
+whether a phone or email code was sent.
+
+### 4. User sync (webhook)
 
 Clerk is the source of truth for _when_ an account exists — our `users` row
 gets created by a webhook, not by anything the mobile app calls directly.
@@ -97,7 +145,7 @@ tunnel is free and needs no account, but the URL is ephemeral — if the
 `cloudflared` process restarts, update the endpoint URL in Clerk's dashboard
 again.
 
-### 4. Authenticated API requests
+### 5. Authenticated API requests
 
 ```
 Mobile app  --Bearer <JWT>-->  ClerkAuthGuard  --request.auth populated-->  [RolesGuard]  --DB role lookup-->  handler
@@ -114,7 +162,7 @@ Mobile app  --Bearer <JWT>-->  ClerkAuthGuard  --request.auth populated-->  [Rol
   `users` table (not Clerk) and throws 403 if it doesn't match. Guard order
   matters — an unauthenticated request never reaches the DB lookup.
 
-### 5. Locale sync
+### 6. Locale sync
 
 ```
 LocaleProvider resolves locale  --isSignedIn && isReady-->  PATCH /me { locale }  --upsert-->  users.locale

@@ -29,16 +29,26 @@ export interface Dictionary {
     loading: string
     genericError: string
     optional: string
+    reset: string
   }
   auth: {
     signIn: {
       title: string
       subtitle: string
+      /** "Mobile number" mode-switch tab label. */
+      mobileMode: string
+      /** "Email" mode-switch tab label — deliberately shorter than `emailFieldLabel`, matching the mockup's own tab-vs-field-label distinction. */
+      emailMode: string
+      /** Uppercased via `TextField`'s label style — not a separate all-caps string. */
+      mobileFieldLabel: string
+      emailFieldLabel: string
       emailLabel: string
       emailPlaceholder: string
       passwordLabel: string
       passwordPlaceholder: string
+      rememberMe: string
       forgotPassword: string
+      orContinueWith: string
       submit: string
       noAccount: string
       signUpLink: string
@@ -62,34 +72,61 @@ export interface Dictionary {
       tradingTerms: string
     }
     forgotPassword: {
+      /** Nav-row header title — "Forgot Password", distinct from the body `title` below. */
+      navTitle: string
       title: string
       subtitle: string
+      channelMobileTitle: string
+      channelMobileHint: string
+      channelEmailTitle: string
+      channelEmailHint: string
+      mobileLabel: string
       emailLabel: string
       emailPlaceholder: string
       submit: string
-      backToSignIn: string
+      safetyNote: string
+      rememberedIt: string
+      signIn: string
     }
     resetPassword: {
       title: string
       subtitle: string
+      codeLabel: string
+      codePlaceholder: string
       newPasswordLabel: string
       confirmPasswordLabel: string
       submit: string
       success: string
     }
     verifyPhone: {
+      /** Nav-row header title — short form ("Verification"), distinct from the body `title` below. */
+      navTitle: string
       title: string
       subtitle: string
-      codeSentTo: string
+      resendPrompt: string
       resendCode: string
       resendIn: string
+      statusExpires: string
+      statusReadyToConfirm: string
+      statusVerified: string
       submit: string
+      verified: string
     }
     verifyEmail: {
+      /** Nav-row header title — "Verify Email", distinct from the body `title` below. */
+      navTitle: string
       title: string
+      /** Precedes the bold email address inline; `subtitleSuffix` follows it on the same line. */
       subtitle: string
-      resendLink: string
-      checkSpamHint: string
+      subtitleSuffix: string
+      step1: string
+      step2: string
+      step3: string
+      openMailApp: string
+      resendEmail: string
+      resendIn: string
+      wrongAddress: string
+      changeEmail: string
     }
   }
   home: {
@@ -99,16 +136,33 @@ export interface Dictionary {
     gemsTab: string
     equipmentTab: string
     viewAll: string
+    /** Time-of-day header greeting — `useGreeting` in the Home screen picks one based on the current hour. */
+    greetingMorning: string
+    greetingAfternoon: string
+    greetingEvening: string
+    liveAuctionBadge: string
+    filtersTitle: string
+    /** Uppercased via the same label style as `TextField` — not a separate all-caps string. */
+    maxPriceLabel: string
+    /** Contains a literal `{{count}}` marker — replaced with the live result count at the call site. */
+    showResultsCount: string
   }
   listingDetail: {
     priceOnRequest: string
     contactSeller: string
     whatsapp: string
+    call: string
+    chat: string
     callSeller: string
     revealPhone: string
     reportListing: string
     blockSeller: string
     similarListings: string
+    viewAll: string
+    priceLabel: string
+    aboutTab: string
+    specsTab: string
+    sellerTab: string
     recentlyViewed: string
     certificate: string
     treatment: string
@@ -238,17 +292,24 @@ export const en: Dictionary = {
     loading: 'Loading…',
     genericError: 'Something went wrong. Please try again.',
     optional: 'Optional',
+    reset: 'Reset',
   },
   auth: {
     signIn: {
       title: 'Welcome back',
-      subtitle: 'Sign in to continue to Ceylon Gems',
+      subtitle: 'Sign in to bid on live lots, track valuations and settle in your own currency.',
+      mobileMode: 'Mobile number',
+      emailMode: 'Email',
+      mobileFieldLabel: 'Mobile number',
+      emailFieldLabel: 'Email address',
       emailLabel: 'Email',
-      emailPlaceholder: 'you@example.com',
+      emailPlaceholder: 'you@gemhouse.lk',
       passwordLabel: 'Password',
       passwordPlaceholder: 'Enter your password',
-      forgotPassword: 'Forgot password?',
-      submit: 'Sign in',
+      rememberMe: 'Keep me signed in',
+      forgotPassword: 'Forgot Password',
+      orContinueWith: 'or continue with',
+      submit: 'Sign In',
       noAccount: "Don't have an account?",
       signUpLink: 'Sign up',
     },
@@ -270,53 +331,90 @@ export const en: Dictionary = {
       tradingTerms: 'Trading Terms',
     },
     forgotPassword: {
-      title: 'Forgot password?',
-      subtitle: "Enter your email and we'll send you a reset link",
-      emailLabel: 'Email',
-      emailPlaceholder: 'you@example.com',
-      submit: 'Send reset link',
-      backToSignIn: 'Back to sign in',
+      navTitle: 'Forgot Password',
+      title: 'Reset your password',
+      subtitle: 'Choose where we should send your reset code. It stays valid for 10 minutes.',
+      channelMobileTitle: 'Text message',
+      channelMobileHint: 'Code sent by SMS to your mobile',
+      channelEmailTitle: 'Email',
+      channelEmailHint: 'Code sent to your registered email',
+      mobileLabel: 'Mobile number',
+      emailLabel: 'Email address',
+      emailPlaceholder: 'you@gemhouse.lk',
+      submit: 'Send reset code',
+      safetyNote: 'For your safety, active bids are paused until you finish resetting.',
+      rememberedIt: 'Remembered it?',
+      signIn: 'Sign In',
     },
     resetPassword: {
       title: 'Set a new password',
       subtitle: 'Choose a new password for your account',
+      codeLabel: 'Reset code',
+      codePlaceholder: 'Enter the code you received',
       newPasswordLabel: 'New password',
       confirmPasswordLabel: 'Confirm password',
       submit: 'Reset password',
       success: 'Your password has been reset',
     },
     verifyPhone: {
-      title: 'Verify your phone',
-      subtitle: 'Enter the code we sent to your phone',
-      codeSentTo: 'Code sent to',
-      resendCode: 'Resend code',
+      navTitle: 'Verification',
+      title: 'Verification code',
+      subtitle: 'Enter the 6-digit code we sent to',
+      resendPrompt: "Didn't receive the code?",
+      resendCode: 'Resend',
       resendIn: 'Resend in',
-      submit: 'Verify',
+      statusExpires: 'Code expires in 5:00',
+      statusReadyToConfirm: 'Tap confirm to continue',
+      statusVerified: 'Code verified',
+      submit: 'Confirm',
+      verified: 'Verified',
     },
     verifyEmail: {
-      title: 'Verify your email',
-      subtitle: 'We sent a verification link to your email',
-      resendLink: 'Resend email',
-      checkSpamHint: "Can't find it? Check your spam folder.",
+      navTitle: 'Verify Email',
+      title: 'Check your inbox',
+      subtitle: 'We sent a verification link to',
+      subtitleSuffix: '. Tap it to confirm your account.',
+      step1: 'Open the email from Ceylon Gem Exchange',
+      step2: 'Tap the verification link inside',
+      step3: 'Return here to start browsing lots',
+      openMailApp: 'Open mail app',
+      resendEmail: 'Resend email',
+      resendIn: 'Resend in',
+      wrongAddress: 'Wrong address?',
+      changeEmail: 'Change email',
     },
   },
   home: {
-    searchPlaceholder: 'Search gemstones, equipment…',
-    featuredTitle: 'Featured',
+    searchPlaceholder: 'Search sapphire, spinel, moonstone',
+    featuredTitle: 'Featured lots',
     categoriesTitle: 'Categories',
     gemsTab: 'Gems',
     equipmentTab: 'Equipment',
     viewAll: 'View all',
+    greetingMorning: 'Good morning',
+    greetingAfternoon: 'Good afternoon',
+    greetingEvening: 'Good evening',
+    liveAuctionBadge: 'Live auction',
+    filtersTitle: 'Filters',
+    maxPriceLabel: 'Max price',
+    showResultsCount: 'Show {{count}} results',
   },
   listingDetail: {
     priceOnRequest: 'Price on request',
     contactSeller: 'Contact seller',
     whatsapp: 'WhatsApp',
+    call: 'Call',
+    chat: 'Chat',
     callSeller: 'Call seller',
     revealPhone: 'Reveal phone number',
     reportListing: 'Report this listing',
     blockSeller: 'Block seller',
     similarListings: 'Similar listings',
+    viewAll: 'View all',
+    priceLabel: 'Price',
+    aboutTab: 'About',
+    specsTab: 'Specs',
+    sellerTab: 'Seller',
     recentlyViewed: 'Recently viewed',
     certificate: 'Certificate',
     treatment: 'Treatment',

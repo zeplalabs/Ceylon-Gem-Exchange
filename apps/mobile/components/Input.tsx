@@ -239,9 +239,13 @@ interface OtpInputProps {
   autoFocus?: boolean
 }
 
-// One glass cell per digit (Verification, Email Verification, Reset
-// Password OTP screens). Value lives in the parent as a single string;
-// this just splits/joins it and manages per-cell focus.
+// Generic one-glass-cell-per-digit input, OS-keyboard-driven. Not currently
+// used — Verification (app/verify-phone.tsx) built its own on-screen-
+// keypad-driven cells instead, since its design has no system keyboard at
+// all; kept for a future OTP screen (e.g. Email Verification, Reset
+// Password) whose design does use a plain keyboard-driven field. Value
+// lives in the parent as a single string; this just splits/joins it and
+// manages per-cell focus.
 export function OtpInput({ length = 6, value, onChangeText, autoFocus }: OtpInputProps) {
   const fonts = useFontFamily()
   const inputs = useRef<Array<TextInput | null>>([])

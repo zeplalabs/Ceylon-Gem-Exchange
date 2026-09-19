@@ -90,27 +90,41 @@ alone only rounds the outer container.
 ### `LiveGradientBackground`
 
 The animated screen-level background every real screen sits on (`app/
-sign-up.tsx` is the first) — a 3-stop base gradient (`tone.screen`) plus
-three soft SVG radial-gradient blobs (`tone.glow`) drifting slowly via
-Reanimated-driven transforms, topped with the standard dark overlay
-gradient. Approximates the Claude Design mockups' animated WebGL
-simplex-noise shader background rather than porting it — a true port needs
-`react-native-skia`'s SkSL runtime effects, which requires leaving Expo Go
-for a custom dev client, a trade-off explicitly declined. Grain isn't
-reproduced at all (no noise texture asset, and `react-native-svg`'s
-`feTurbulence` support isn't reliable cross-platform) — only the
-moving-gradient half of "living gradient" is real.
+sign-up.tsx` is the first) — the Claude Design mockups' own animated WebGL
+simplex-noise shader (color-blend noise, vignette, grain), ported to SkSL
+and run natively via `react-native-skia`'s `RuntimeEffect`/`Shader`/`Canvas`.
+Not an approximation: the shader source in `LiveGradientBackground.tsx` is a
+near-verbatim translation of the mockups' own `native/velaris.js` fragment
+shader — the only real change is the entry point (`half4 main(float2
+fragCoord)` computing `uv` from `fragCoord`/`u_resolution` directly, since
+Skia's `RuntimeEffect` has no vertex stage/`varying` to supply it). `u_time`
+comes from Reanimated's `useClock()`, combined with the rest of the uniforms
+in a single `useDerivedValue` so the per-frame update runs off the JS
+thread — the standard pattern for an animated Skia shader.
+`useReducedMotion()` freezes `u_time` at 0 (a static but still-colorful
+frame) rather than skipping the shader entirely.
 
-**Web is the one platform where this approximation isn't necessary** — a
-real browser has a real `<canvas>`/WebGL context, no custom dev client
-required — so `LiveGradientBackground.web.tsx` is a second, platform-specific
-implementation Metro picks automatically for web bundles (plain `.tsx` stays
-the fallback used by iOS/Android). It ports the Claude Design mockups' own
-vertex/fragment GLSL (simplex noise, grain, vignette) verbatim, driving the
-same `u_colors`/`u_bg` uniforms from the tone's `glow`/`screen[2]` tokens the
-native gradient already uses, so the two variants read as the same design at
-different fidelities rather than two different designs. Same public props as
-the native file — callers never branch on platform.
+An earlier version used three soft `react-native-svg` radial-gradient blobs
+drifting via Reanimated transforms, specifically to stay on Expo Go
+(`react-native-skia` is a third-party native module Expo Go can't load at
+all). Even after being recalibrated for native visibility — see git history
+on this file, or CLAUDE.md's "Implementing a screen from a Claude Design
+`.dc.html` file" section — it couldn't be tuned into "covers the whole
+screen, moves fast": a handful of discrete soft circles is a different kind
+of motion from a continuous per-pixel noise field, not just a fainter
+version of the same thing. That gap is what motivated leaving Expo Go for a
+custom dev client project-wide — see CLAUDE.md's "Current sequencing".
+
+**Web already had the real thing, independently** — a browser has a real
+`<canvas>`/WebGL context with no Expo-Go-vs-dev-client tradeoff to make, so
+`LiveGradientBackground.web.tsx` is a second, platform-specific
+implementation Metro picks automatically for web bundles (plain `.tsx` is
+the fallback used by iOS/Android, same as any other platform-specific file
+in this kit). It ports the same mockup shader independently, onto a raw
+`<canvas>` element with its own manual WebGL plumbing rather than Skia's
+`RuntimeEffect`, driving the same `u_colors`/`u_bg` uniforms from the tone's
+`glow`/`screen[2]` tokens the native version uses. Same public props on both
+files — callers never branch on platform.
 
 If you ever see this render as a flat black canvas, it's very likely a
 headless-Chrome testing artifact, not a code bug: recent Chrome versions
@@ -158,12 +172,12 @@ interface LiveGradientBackgroundProps {
 
 ## Inputs (`Input.tsx`)
 
-| Component    | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TextField`  | Glass text field used across every form (email, password, ad title/description). Focus and error both shift the border color, never layout, so the field doesn't jump. `label` and `error` are associated with the underlying `TextInput` via `accessibilityLabel`/`accessibilityHint`; the error text itself is `accessibilityRole="alert"` with a live region so it's announced when it appears. `radius` defaults to 18 (the mockups' exact fieldStyle value), not the generic `GlassSurface` default. |
-| `SearchBar`  | Full-pill search field by default (Home header, Saved Searches) — pass `radius` to override for a squarer inline search (e.g. inside a picker sheet, which wants 16). The clear (✕) button's screen-reader label is a prop (`clearAccessibilityLabel`, English default) — pass the translated string from a screen rather than relying on the default.                                                                                                                                                    |
-| `OtpInput`   | One glass cell per digit (phone/email verification). Value lives in the parent as a single string; manages per-cell focus and backspace-to-previous-cell internally. Each cell is labeled `"Digit N of length"` for screen readers.                                                                                                                                                                                                                                                                       |
-| `PhoneField` | Mobile-number field with a pressable country-dial-code prefix (Signup, and anywhere phone is the primary identifier). Only reports the press — the screen owns opening its own country-picker `BottomSheet` (see the Sign Up screen for the pattern: a `ListRow`-based list with a flag `leading`, dial-code + checkmark `trailing`).                                                                                                                                                                     |
+| Component    | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `TextField`  | Glass text field used across every form (email, password, ad title/description). Focus and error both shift the border color, never layout, so the field doesn't jump. `label` and `error` are associated with the underlying `TextInput` via `accessibilityLabel`/`accessibilityHint`; the error text itself is `accessibilityRole="alert"` with a live region so it's announced when it appears. `radius` defaults to 18 (the mockups' exact fieldStyle value), not the generic `GlassSurface` default.                                                                |
+| `SearchBar`  | Full-pill search field by default (Home header, Saved Searches) — pass `radius` to override for a squarer inline search (e.g. inside a picker sheet, which wants 16). The clear (✕) button's screen-reader label is a prop (`clearAccessibilityLabel`, English default) — pass the translated string from a screen rather than relying on the default.                                                                                                                                                                                                                   |
+| `OtpInput`   | Generic one-glass-cell-per-digit input, OS-keyboard-driven. Not currently used by any screen — Verification (`app/verify-phone.tsx`) built its own on-screen-keypad-driven cells instead of this, since its design has no `TextInput`/system keyboard at all; kept for a future screen (e.g. Email Verification, Reset Password) whose design does use a plain keyboard-driven OTP field. Value lives in the parent as a single string; manages per-cell focus and backspace-to-previous-cell internally. Each cell is labeled `"Digit N of length"` for screen readers. |
+| `PhoneField` | Mobile-number field with a pressable country-dial-code prefix (Signup, and anywhere phone is the primary identifier). Only reports the press — the screen owns opening its own country-picker `BottomSheet` (see the Sign Up screen for the pattern: a `ListRow`-based list with a flag `leading`, dial-code + checkmark `trailing`).                                                                                                                                                                                                                                    |
 
 ```tsx
 <TextField label={t.auth.signIn.emailLabel} placeholder="you@example.com" value={email} onChangeText={setEmail} error={emailError} />
@@ -312,8 +326,6 @@ common case where a `ListRow`'s own title already identifies the person.
 ## Known limitations
 
 - **No exhaustive contrast audit.** See [design tokens](./design-tokens.md#known-limitation) — glass surfaces' real contrast depends on whatever renders behind them.
-- **Verified on iOS Simulator only**, via `expo start --ios` + screenshots, not a physical device or Android emulator. `expo start` also rewrites `apps/mobile/tsconfig.json` and deletes `apps/mobile/expo-env.d.ts` as a side effect of regenerating typed routes — `git checkout` those two files after any verification run, before committing.
+- **Verified on iOS Simulator only** (via `expo run:ios`'s dev client + screenshots — see CLAUDE.md's "Current sequencing" for why plain `expo start`/Expo Go no longer works at all), not a physical device or Android emulator. `expo start`/`expo run:ios` also rewrite `apps/mobile/tsconfig.json` and delete `apps/mobile/expo-env.d.ts` as a side effect of regenerating typed routes — `git checkout` those two files after any verification run, before committing. Separately, **`BlurView` blur strength specifically cannot be verified from an iOS Simulator screenshot at all** — the Simulator doesn't reliably render `UIVisualEffectView` blur regardless of intensity (confirmed by forcing `intensity` to 26, 51, and 100 and diffing screenshots — near-zero difference every time); gradient/color/layout/Skia-shader changes do render correctly in the Simulator and are safe to verify that way.
 - **VoiceOver/TalkBack walkthroughs weren't performed end-to-end** — the accessibility work (roles, states, labels, reduced motion, hit targets) is verified by code review and a visual on-device check, not a recorded screen-reader pass.
-- **`LiveGradientBackground` doesn't reproduce film grain** — see its own section above. Only the moving-gradient half of the original design's "living gradient" is real.
-- **`app/verify-phone.tsx` has no design yet** — built with the existing kit to stay visually consistent, but should be replaced once a real design for it exists (see `docs/authentication.md`'s Sign-up flow section).
 - **Web platform support (`react-native-web`) is new and only smoke-tested**, not verified with the same rigor as iOS: `expo-secure-store` has no web implementation (routed through `lib/storage.ts`'s `localStorage` fallback instead), `GlassSurface`'s blur/tint layers need an explicit `zIndex: -1` to stay behind content on web (a real CSS stacking rule with no native equivalent), and font loading, `BottomSheet`'s modal behavior, and real mouse/touch gesture interaction on web haven't been separately verified yet.

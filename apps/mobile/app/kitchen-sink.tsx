@@ -54,7 +54,7 @@ export default function KitchenSink() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Ceylon Gems</Text>
+          <Text style={styles.title}>Ceylon Gem Exchange</Text>
           <Link href="/locale-settings" asChild>
             <IconButton
               icon={<Text style={{ color: neutral.white }}>🌐</Text>}

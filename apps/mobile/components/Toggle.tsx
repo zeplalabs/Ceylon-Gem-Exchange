@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
+import { GRADIENT_140 } from './primitives/gradientAngle'
 import { PressableScale } from './primitives/PressableScale'
 
 interface ToggleProps {
@@ -110,7 +111,12 @@ export function Checkbox({
       {checked ? (
         <LinearGradient
           colors={[`${palette.cta[0]}0.95)`, `${palette.cta[1]}0.8)`]}
-          style={styles.checkboxBox}
+          start={GRADIENT_140.start}
+          end={GRADIENT_140.end}
+          style={[
+            styles.checkboxBox,
+            { borderColor: `rgba(${palette.rim},0.6)`, borderTopColor: 'rgba(255,255,255,0.5)' },
+          ]}
         >
           <Text style={[styles.checkboxTick, { color: palette.tickInk }]}>✓</Text>
         </LinearGradient>
@@ -147,6 +153,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 7,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

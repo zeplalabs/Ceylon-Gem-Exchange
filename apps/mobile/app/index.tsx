@@ -6,5 +6,5 @@ import { Redirect } from 'expo-router'
 // /kitchen-sink so it's still reachable for testing components in
 // isolation.
 export default function Index() {
-  return <Redirect href="/sign-up" />
+  return <Redirect href="/home" />
 }
