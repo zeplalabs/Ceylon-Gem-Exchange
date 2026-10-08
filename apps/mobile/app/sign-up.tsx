@@ -1,5 +1,5 @@
 import { useSignUp } from '@clerk/expo'
-import { defaultGemTone, fontSize, gemTones, spacing } from '@ceylon-gems/ui-tokens'
+import { fontSize, gemTones, spacing } from '@ceylon-gems/ui-tokens'
 import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -37,26 +37,33 @@ import { LiveGradientBackground } from '../components/primitives/LiveGradientBac
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
 import { countries, defaultCountryIndex, type Country } from '../lib/countries'
-
-const tone = gemTones[defaultGemTone]
-const iconSoft = `rgba(${tone.rim},0.75)`
+import { useGemTone } from '../providers/GemToneProvider'
 
 interface FieldErrors {
   name?: string
   mobile?: string
+  email?: string
   password?: string
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 // UI + real Clerk sign-up per the "Ceylon Gem Exchange Signup.dc.html"
-// design. Phone is the primary identifier (Clerk requires it verified —
-// see /verify-phone); email is optional. The design computes a password-
-// strength meter and a Dealer/Cutter/Collector role picker, but neither is
-// actually rendered in its visible markup, so neither is built here.
+// design. Phone and email are both required and both verified (see
+// /verify-phone and /verify-email) — this Clerk instance's own config
+// marks email_address as required, not just phone_number, regardless of
+// what the original mockup's copy implied. The design computes a
+// password-strength meter and a Dealer/Cutter/Collector role picker, but
+// neither is actually rendered in its visible markup, so neither is built
+// here.
 export default function SignUpScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
   const { signUp } = useSignUp()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
+  const iconSoft = `rgba(${tone.rim},0.75)`
 
   const [name, setName] = useState('')
   const [countryIndex, setCountryIndex] = useState(defaultCountryIndex)
@@ -83,9 +90,12 @@ export default function SignUpScreen() {
   async function handleSubmit() {
     if (submitting) return
 
+    const trimmedEmail = email.trim()
     const errors: FieldErrors = {}
     if (!name.trim()) errors.name = 'Enter your full name'
     if (!mobile.trim()) errors.mobile = 'Enter your mobile number'
+    if (!trimmedEmail) errors.email = 'Enter your email address'
+    else if (!EMAIL_PATTERN.test(trimmedEmail)) errors.email = 'Enter a valid email address'
     if (password.length < 8) errors.password = 'Use at least 8 characters'
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) return
@@ -95,17 +105,17 @@ export default function SignUpScreen() {
     try {
       const [firstName, ...rest] = name.trim().split(/\s+/)
       const lastName = rest.join(' ') || undefined
-      const trimmedEmail = email.trim()
 
       const { error } = await signUp.password({
         phoneNumber: `${country.dial}${mobile.replace(/\s+/g, '')}`,
         password,
         firstName,
         lastName,
-        ...(trimmedEmail ? { emailAddress: trimmedEmail } : {}),
+        emailAddress: trimmedEmail,
       })
 
       if (error) {
+        console.error('[SignUp] signUp.password() returned an error', JSON.stringify(error))
         setFormError(error.longMessage ?? 'Something went wrong. Please try again.')
         return
       }
@@ -118,7 +128,8 @@ export default function SignUpScreen() {
 
       await signUp.verifications.sendPhoneCode()
       router.push('/verify-phone')
-    } catch {
+    } catch (err) {
+      console.error('[SignUp] handleSubmit failed', err)
       setFormError('Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
@@ -183,6 +194,7 @@ export default function SignUpScreen() {
                 leftIcon={<MailIcon color={iconSoft} />}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={fieldErrors.email}
               />
 
               <TextField
@@ -217,7 +229,7 @@ export default function SignUpScreen() {
             >
               <Text style={[styles.termsText, { fontFamily: fonts.medium }]}>
                 {termsBefore}
-                <Text style={[styles.termsLink, { fontFamily: fonts.semibold }]}>
+                <Text style={{ fontFamily: fonts.semibold, color: tone.accent }}>
                   {t.auth.signUp.tradingTerms}
                 </Text>
                 {termsAfter}
@@ -238,7 +250,10 @@ export default function SignUpScreen() {
               <Text style={[styles.footerText, { fontFamily: fonts.medium }]}>
                 {t.auth.signUp.hasAccount}
               </Text>
-              <Link href="/sign-in" style={[styles.footerLink, { fontFamily: fonts.semibold }]}>
+              <Link
+                href="/sign-in"
+                style={[styles.footerLink, { fontFamily: fonts.semibold, color: tone.accent }]}
+              >
                 {t.auth.signUp.signInLink}
               </Link>
             </View>
@@ -360,9 +375,6 @@ const styles = StyleSheet.create({
     lineHeight: fontSize.xs * 1.5,
     color: 'rgba(255,255,255,0.62)',
   },
-  termsLink: {
-    color: tone.accent,
-  },
   submitButton: {
     marginTop: 18,
   },
@@ -378,7 +390,6 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: fontSize.xs,
-    color: tone.accent,
   },
   pickerHeader: {
     flexDirection: 'row',

@@ -1,14 +1,7 @@
-import {
-  defaultGemTone,
-  fontSize,
-  gemTones,
-  neutral,
-  radii,
-  spacing,
-  type GemTone,
-} from '@ceylon-gems/ui-tokens'
+import { fontSize, gemTones, neutral, radii, spacing, type GemTone } from '@ceylon-gems/ui-tokens'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useGemTone } from '../providers/GemToneProvider'
 
 type BadgeVariant = 'accent' | 'success' | 'warning' | 'danger' | 'neutral'
 
@@ -22,9 +15,10 @@ interface BadgeProps {
 // Small status pill — "Verified", "New", "Sold", membership tier labels.
 // Flat tinted fill (no blur/glass, no press state — badges aren't
 // interactive anywhere in the mockups).
-export function Badge({ label, variant = 'accent', tone = defaultGemTone, style }: BadgeProps) {
+export function Badge({ label, variant = 'accent', tone, style }: BadgeProps) {
   const fonts = useFontFamily()
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const colors = variantColors(variant, palette)
 
   return (

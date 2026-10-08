@@ -1,9 +1,11 @@
-import { defaultGemTone, gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
+import { gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { memo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useFontFamily } from '../hooks/useFontFamily'
-import { ArrowRightIcon, GemIcon, HeartIcon } from './icons'
+import { useCurrency } from '../providers/CurrencyProvider'
+import { useGemTone } from '../providers/GemToneProvider'
+import { GemIcon, HeartIcon } from './icons'
 import { GRADIENT_140 } from './primitives/gradientAngle'
 import { GlassSurface } from './primitives/GlassSurface'
 import { PressableScale } from './primitives/PressableScale'
@@ -11,7 +13,7 @@ import { PressableScale } from './primitives/PressableScale'
 interface ListingCardProps {
   name: string
   spec: string
-  price: string
+  priceUsd: number
   badge: string
   /** Omit both `liked` and `onToggleLike` to render without a heart button at all — e.g. Listing Detail's "similar listings" grid, whose mockup has no like affordance on these cards. */
   liked?: boolean
@@ -22,9 +24,13 @@ interface ListingCardProps {
 
 // The 2-per-row grid tile (Home's `ads`, and the shape "My Ads"/"Saved
 // Searches"/Listing Detail's "similar listings" reuse) — exact values from
-// the Home mockup's `cardStyle`/`badgeStyle`/`heartStyle`/`arrowStyle`, not
-// the general Card.tsx (whose uniform padding doesn't fit an image-first
-// tile). No real photo backend exists yet, so the image area renders a
+// the Home mockup's `cardStyle`/`badgeStyle`/`heartStyle`, not the general
+// Card.tsx (whose uniform padding doesn't fit an image-first tile). The
+// mockup's `arrowStyle` button next to the price was dropped — it wasn't
+// its own tap target (sat inside the same whole-card PressableScale below),
+// so it was pure decoration that just ate space in an already-tight
+// 2-column price row. No real photo backend exists yet, so the image area
+// renders a
 // tinted glass placeholder with the brand gem mark instead of an
 // `expo-image` — swap in a real photo source once listings have one.
 // Primitives-as-props and `memo` per the RN list-performance rules: this
@@ -32,15 +38,18 @@ interface ListingCardProps {
 function ListingCardImpl({
   name,
   spec,
-  price,
+  priceUsd,
   badge,
   liked,
-  tone = defaultGemTone,
+  tone,
   onPress,
   onToggleLike,
 }: ListingCardProps) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const fonts = useFontFamily()
+  const { formatPrice } = useCurrency()
+  const price = formatPrice(priceUsd)
 
   return (
     <GlassSurface radius={22} clarity={55} style={styles.card}>
@@ -74,14 +83,6 @@ function ListingCardImpl({
             <Text style={[styles.price, { fontFamily: fonts.extrabold, color: palette.accent }]}>
               {price}
             </Text>
-            <LinearGradient
-              colors={[`${palette.cta[0]}0.8)`, `${palette.cta[1]}0.62)`]}
-              start={GRADIENT_140.start}
-              end={GRADIENT_140.end}
-              style={[styles.arrow, { borderColor: `rgba(${palette.rim},0.45)` }]}
-            >
-              <ArrowRightIcon size={13} />
-            </LinearGradient>
           </View>
         </View>
       </PressableScale>
@@ -109,9 +110,9 @@ function ListingCardImpl({
 export const ListingCard = memo(ListingCardImpl)
 
 const styles = StyleSheet.create({
-  // Exact values from the mockups' cardStyle/badgeStyle/heartStyle/
-  // arrowStyle — image height 118, card radius 22, badge/heart/arrow sizes
-  // and offsets — not the general spacing/radii scales.
+  // Exact values from the mockups' cardStyle/badgeStyle/heartStyle —
+  // image height 118, card radius 22, badge/heart sizes and offsets — not
+  // the general spacing/radii scales.
   card: {
     overflow: 'hidden',
   },
@@ -166,18 +167,9 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: 2,
   },
   price: {
     fontSize: 14,
-  },
-  arrow: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
   },
 })

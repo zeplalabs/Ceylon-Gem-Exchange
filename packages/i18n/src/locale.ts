@@ -1,7 +1,8 @@
-// English + Sinhala only for now — Tamil is a deliberately deferred product
-// decision (see CLAUDE.md), not an oversight. Don't add a `ta` entry here
-// until that's explicitly picked back up.
-export const SUPPORTED_LOCALES = ['en', 'si'] as const
+// English, Sinhala, and Tamil — Account Settings' Language picker. The
+// `userLocale` pg enum on the backend (apps/api/src/db/schema.ts) and the
+// `languages` taxonomy table it reads from are both already keyed on these
+// same three codes.
+export const SUPPORTED_LOCALES = ['en', 'si', 'ta'] as const
 export type Locale = (typeof SUPPORTED_LOCALES)[number]
 
 export const defaultLocale: Locale = 'en'

@@ -1,9 +1,19 @@
-import { defaultGemTone, gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
-import { Canvas, Fill, Shader, Skia, useCanvasSize, useClock } from '@shopify/react-native-skia'
+import { gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
+import {
+  Canvas,
+  Fill,
+  Shader,
+  Skia,
+  useCanvasSize,
+  useClock,
+  type SkRuntimeEffect,
+} from '@shopify/react-native-skia'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo, type ReactNode } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useDerivedValue, useReducedMotion } from 'react-native-reanimated'
+import { useGemTone } from '../../providers/GemToneProvider'
+import { useLiveGradient } from '../../providers/LiveGradientProvider'
 
 // Ported near-verbatim from the mockups' own WebGL background
 // (native/velaris.js in the Claude Design project) — the fragment-shader
@@ -105,26 +115,38 @@ function hexToRgb01(hex: string): [number, number, number] {
   ]
 }
 
+// Compiled once at module load, not per-mount — every screen wraps itself
+// in its own LiveGradientBackground, so a navigation push/pop mounts a
+// fresh instance of this component on every single transition. SHADER_SOURCE
+// never changes, so a per-instance `useMemo(() => Skia.RuntimeEffect.Make(...), [])`
+// doesn't help: useMemo only caches for that instance's lifetime, not across
+// unmount/remount, meaning every navigation was recompiling the identical
+// shader from scratch right as the transition animation needed to be
+// smooth. Module scope compiles it exactly once for the app's lifetime.
+const compiledShader = Skia.RuntimeEffect.Make(SHADER_SOURCE)
+if (!compiledShader) {
+  throw new Error('LiveGradientBackground: failed to compile the aurora shader')
+}
+// Explicitly typed non-null — TS's control-flow narrowing from the check
+// above doesn't carry through to the component function below, since it's
+// a closure over this module-scope binding rather than the same scope.
+const SHADER_EFFECT: SkRuntimeEffect = compiledShader
+
 // The screen-level animated background every real screen sits on — the
 // mockups' own WebGL simplex-noise shader (see SHADER_SOURCE above),
-// running via react-native-skia instead of an approximation of it.
-export function LiveGradientBackground({
-  tone = defaultGemTone,
-  children,
-  style,
-}: LiveGradientBackgroundProps) {
-  const palette = gemTones[tone]
+// running via react-native-skia instead of an approximation of it. `u_time`
+// freezes at 0 — a static but still colorful frame, not a blank one — under
+// either the OS's reduced-motion setting or Appearance's own explicit
+// "Live gradient" toggle (LiveGradientProvider); either one is enough.
+export function LiveGradientBackground({ tone, children, style }: LiveGradientBackgroundProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const clock = useClock()
   const reduceMotion = useReducedMotion()
+  const { liveGradientEnabled } = useLiveGradient()
+  const frozen = reduceMotion || !liveGradientEnabled
   const { ref, size } = useCanvasSize()
-
-  const source = useMemo(() => {
-    const effect = Skia.RuntimeEffect.Make(SHADER_SOURCE)
-    if (!effect) {
-      throw new Error('LiveGradientBackground: failed to compile the aurora shader')
-    }
-    return effect
-  }, [])
+  const source = SHADER_EFFECT
 
   // Matches the mockups' own velBg/velColors mapping exactly: the
   // background is the darkest screen stop, and the four shader colors are
@@ -142,12 +164,12 @@ export function LiveGradientBackground({
   const uniforms = useDerivedValue(() => {
     return {
       u_resolution: [size.width, size.height],
-      u_time: reduceMotion ? 0 : clock.value * 0.001 * SPEED,
+      u_time: frozen ? 0 : clock.value * 0.001 * SPEED,
       u_grain: GRAIN,
       u_colors: colors,
       u_bg: bg,
     }
-  }, [clock, size, reduceMotion, colors, bg])
+  }, [clock, size, frozen, colors, bg])
 
   return (
     <View style={[styles.fill, style]}>

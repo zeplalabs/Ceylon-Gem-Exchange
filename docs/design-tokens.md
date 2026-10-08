@@ -64,14 +64,14 @@ Tone-independent — identical across all three gem tones.
 
 One typeface — **Jost** — for both display and UI, differentiated by weight
 rather than by swapping families (unlike the old, superseded Cormorant
-Garamond system). Sinhala uses **Noto Sans Sinhala** at matching weights;
-**Tamil is intentionally not wired up** — don't add a `ta` entry or a
-fallback-to-English default for it ahead of that work being picked back up.
+Garamond system). Sinhala uses **Noto Sans Sinhala** and Tamil uses **Noto
+Sans Tamil**, both at matching weights.
 
 ```ts
 fontFamilies: {
   en: { regular, medium, semibold, bold, extrabold }, // Jost_400Regular … Jost_800ExtraBold
   si: { regular, medium, semibold, bold, extrabold }, // NotoSansSinhala_400Regular … _800ExtraBold
+  ta: { regular, medium, semibold, bold, extrabold }, // NotoSansTamil_400Regular … _800ExtraBold
 }
 ```
 

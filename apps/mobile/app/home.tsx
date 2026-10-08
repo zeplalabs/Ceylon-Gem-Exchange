@@ -1,7 +1,8 @@
 import { useAuth, useUser } from '@clerk/expo'
-import { defaultGemTone, gemTones } from '@ceylon-gems/ui-tokens'
+import { gemTones } from '@ceylon-gems/ui-tokens'
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import Slider from '@react-native-community/slider'
+import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
@@ -10,37 +11,40 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BottomNavBar, BottomSheet, GlassSurface, ListingCard, SearchBar } from '../components'
 import {
   BellIcon,
-  BidsTabIcon,
   CloseIcon,
   ExploreTabIcon,
   FilterIcon,
   GemIcon,
   HeartIcon,
   HomeTabIcon,
-  PlayIcon,
+  PlusIcon,
   ProfileTabIcon,
   SearchIcon,
 } from '../components/icons'
 import { GRADIENT_140 } from '../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { PressableScale } from '../components/primitives/PressableScale'
+import { useFilters } from '../hooks/useFilters'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
-import { filterGroups, type FilterGroupKey } from '../lib/filters'
 import { defaultLikedIds, featuredListings, type Listing } from '../lib/listings'
-
-const tone = gemTones[defaultGemTone]
+import { useCurrency } from '../providers/CurrencyProvider'
+import { useGemTone } from '../providers/GemToneProvider'
+import { useNotifications } from '../providers/NotificationsProvider'
 const PAD = 22
 const GRID_GAP = 12
 
-type PickedFilters = Record<FilterGroupKey, string[]>
-const emptyPicked: PickedFilters = {
-  Stone: [],
-  Shape: [],
-  District: [],
-  Origin: [],
-  Certificate: [],
-}
+// Placeholder hero photo (Unsplash, free license, no attribution required)
+// — no real photo backend exists yet (see ListingCard.tsx's identical
+// note), so this stands in until real gem photography is wired up.
+const HERO_IMAGE_URL =
+  'https://images.unsplash.com/photo-1613843351058-1dd06fda7c02?w=1200&q=80&auto=format&fit=crop'
+
+// Group names are DB-driven now (see useFilters) — the admin dashboard
+// (not built yet) can add/retire whole groups, not just options within
+// them, so this can't be a fixed compile-time union anymore.
+type PickedFilters = Record<string, string[]>
+const emptyPicked: PickedFilters = {}
 
 function useGreeting() {
   const t = useTranslation()
@@ -52,9 +56,10 @@ function useGreeting() {
 
 // UI + real signed-in state per the "Ceylon Gem Exchange Home.dc.html"
 // design. No listings/search backend exists yet (see CLAUDE.md's "Current
-// sequencing"), so `featuredListings`/`filterGroups` are placeholder demo
-// data, and search/filtering only narrow that local array rather than
-// hitting Typesense. The mockup's `position:sticky` search bar and filter-
+// sequencing"), so `featuredListings` is placeholder demo data and search/
+// filtering only narrow that local array rather than hitting Typesense —
+// the filter sheet's taxonomy itself (`useFilters`) is real, DB-backed data
+// though (see apps/api/src/filters). The mockup's `position:sticky` search bar and filter-
 // chips row are rendered as plain scrolling content, not truly sticky —
 // FlashList v2 has no `stickyHeaderIndices` equivalent for header content,
 // and reaching for one would mean restructuring the header into typed list
@@ -67,6 +72,13 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const { isLoaded, isSignedIn } = useAuth()
   const { user } = useUser()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
+  const { formatPrice } = useCurrency()
+  const { unreadCount } = useNotifications()
+
+  const filterData = useFilters()
+  const filterGroups = filterData ?? {}
 
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<PickedFilters>(emptyPicked)
@@ -74,16 +86,37 @@ export default function HomeScreen() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [liked, setLiked] = useState<Set<string>>(defaultLikedIds)
   // The mockup's bottom nav switches a local `navIdx` with no other real
-  // destination screens built yet — Explore/Bids/Saved/Profile don't exist,
-  // so this only changes which tab reads as active, per the same
-  // build-the-visible-interaction-now precedent as Signup's role tabs.
-  const [navValue, setNavValue] = useState<'home' | 'explore' | 'bids' | 'saved' | 'profile'>(
+  // destination screens built yet for Explore/Saved, so those only change
+  // which tab reads as active, per the same build-the-visible-interaction-
+  // now precedent as Signup's role tabs. Profile is the one exception — it
+  // now navigates to the real Profile hub screen (which has its own copy
+  // of this same shared BottomNavBar, with "Profile" as the one already
+  // active) rather than just toggling active state here, so handleNavChange
+  // below doesn't set it as the local tab. The middle slot (previously
+  // "Bids") is now the raised "Post ad" button, routing to the real
+  // app/post-ad.tsx wizard — it never reads as an active tab (BottomNavBar
+  // skips the active-state treatment entirely for `raised` items), so it's
+  // a real navigation inside the `value === 'post'` branch below rather
+  // than a `setNavValue` call.
+  const [navValue, setNavValue] = useState<'home' | 'explore' | 'post' | 'saved' | 'profile'>(
     'home',
   )
 
-  const toggleFilterOption = useCallback((group: FilterGroupKey, name: string) => {
+  function handleNavChange(value: 'home' | 'explore' | 'post' | 'saved' | 'profile') {
+    if (value === 'profile') {
+      router.push('/profile')
+      return
+    }
+    if (value === 'post') {
+      router.push('/post-ad')
+      return
+    }
+    setNavValue(value)
+  }
+
+  const toggleFilterOption = useCallback((group: string, name: string) => {
     setPicked((prev) => {
-      const current = prev[group]
+      const current = prev[group] ?? []
       const next = current.includes(name) ? current.filter((x) => x !== name) : [...current, name]
       return { ...prev, [group]: next }
     })
@@ -99,10 +132,7 @@ export default function HomeScreen() {
   }, [])
 
   const activeChips = useMemo(
-    () =>
-      (Object.keys(picked) as FilterGroupKey[]).flatMap((group) =>
-        picked[group].map((name) => ({ group, name })),
-      ),
+    () => Object.keys(picked).flatMap((group) => picked[group]!.map((name) => ({ group, name }))),
     [picked],
   )
   const hasFilters = activeChips.length > 0
@@ -126,7 +156,7 @@ export default function HomeScreen() {
         <ListingCard
           name={item.name}
           spec={item.spec}
-          price={item.price}
+          priceUsd={item.priceUsd}
           badge={item.badge}
           liked={liked.has(item.id)}
           onToggleLike={() => toggleLike(item.id)}
@@ -158,15 +188,25 @@ export default function HomeScreen() {
             </Text>
           </View>
           <PressableScale
+            onPress={() => router.push('/notifications')}
             accessibilityRole="button"
             accessibilityLabel={t.notifications.title}
             hitSlop={4}
           >
             <GlassSurface radius={14} clarity={55} style={styles.bell}>
               <BellIcon />
-              <View
-                style={[styles.bellDot, { backgroundColor: tone.accent, shadowColor: tone.accent }]}
-              />
+              {/* Was unconditional before — now tied to
+                  NotificationsProvider's real unread count so it actually
+                  clears once everything's been read on the inbox screen,
+                  instead of a permanently-on decoration. */}
+              {unreadCount > 0 ? (
+                <View
+                  style={[
+                    styles.bellDot,
+                    { backgroundColor: tone.accent, shadowColor: tone.accent },
+                  ]}
+                />
+              ) : null}
             </GlassSurface>
           </PressableScale>
         </View>
@@ -180,35 +220,18 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <>
               <View style={styles.hero}>
-                <View style={styles.heroPlaceholder}>
-                  <GemIcon size={40} ink="rgba(255,255,255,0.18)" inkSoft="rgba(255,255,255,0.1)" />
-                </View>
+                <Image
+                  source={{ uri: HERO_IMAGE_URL }}
+                  style={styles.heroImage}
+                  contentFit="cover"
+                  transition={200}
+                />
                 <LinearGradient
-                  colors={['rgba(6,11,26,0.1)', 'rgba(6,11,26,0.05)', 'rgba(6,11,26,0.82)']}
+                  colors={['rgba(6,11,26,0.1)', 'rgba(6,11,26,0.05)', 'rgba(6,11,26,0.55)']}
                   locations={[0, 0.45, 1]}
                   style={StyleSheet.absoluteFill}
                   pointerEvents="none"
                 />
-                <View style={styles.heroFooter} pointerEvents="none">
-                  <View style={styles.heroText}>
-                    <LinearGradient
-                      colors={[`${tone.cta[0]}0.6)`, `${tone.cta[1]}0.42)`]}
-                      start={GRADIENT_140.start}
-                      end={GRADIENT_140.end}
-                      style={[styles.heroBadge, { borderColor: `rgba(${tone.rim},0.45)` }]}
-                    >
-                      <Text style={[styles.heroBadgeLabel, { fontFamily: fonts.extrabold }]}>
-                        {t.home.liveAuctionBadge}
-                      </Text>
-                    </LinearGradient>
-                    <Text style={[styles.heroTitle, { fontFamily: fonts.extrabold }]}>
-                      Ratnapura Signature Sale
-                    </Text>
-                  </View>
-                  <View style={styles.heroPlay}>
-                    <PlayIcon size={13} />
-                  </View>
-                </View>
               </View>
 
               <View style={styles.searchRow}>
@@ -275,9 +298,13 @@ export default function HomeScreen() {
                 <Text style={[styles.sectionTitle, { fontFamily: fonts.extrabold }]}>
                   {t.home.featuredTitle}
                 </Text>
-                <Text style={[styles.sectionLink, { fontFamily: fonts.bold, color: tone.accent }]}>
-                  {t.home.viewAll}
-                </Text>
+                <PressableScale onPress={() => router.push('/all-listings')} hitSlop={8}>
+                  <Text
+                    style={[styles.sectionLink, { fontFamily: fonts.bold, color: tone.accent }]}
+                  >
+                    {t.home.viewAll}
+                  </Text>
+                </PressableScale>
               </View>
             </>
           }
@@ -287,12 +314,17 @@ export default function HomeScreen() {
 
       <BottomNavBar
         value={navValue}
-        onChange={setNavValue}
-        style={[styles.floatingNav, { bottom: insets.bottom + 20 }]}
+        onChange={handleNavChange}
+        style={[styles.floatingNav, { bottom: 30 }]}
         items={[
           { value: 'home', label: 'Home', icon: (color) => <HomeTabIcon color={color} /> },
           { value: 'explore', label: 'Explore', icon: (color) => <ExploreTabIcon color={color} /> },
-          { value: 'bids', label: 'Bids', icon: (color) => <BidsTabIcon color={color} /> },
+          {
+            value: 'post',
+            label: 'Post ad',
+            icon: (color) => <PlusIcon size={22} color={color} strokeWidth={2.4} />,
+            raised: true,
+          },
           {
             value: 'saved',
             label: 'Saved',
@@ -325,14 +357,14 @@ export default function HomeScreen() {
         </View>
 
         <ScrollView style={styles.filterBody} keyboardShouldPersistTaps="handled">
-          {(Object.keys(filterGroups) as FilterGroupKey[]).map((group) => (
+          {Object.keys(filterGroups).map((group) => (
             <View key={group} style={styles.filterGroup}>
               <Text style={[styles.filterGroupLabel, { fontFamily: fonts.bold }]}>
                 {group.toUpperCase()}
               </Text>
               <View style={styles.filterOptions}>
-                {filterGroups[group].map((option) => {
-                  const isSelected = picked[group].includes(option)
+                {filterGroups[group]!.map((option) => {
+                  const isSelected = (picked[group] ?? []).includes(option)
                   return (
                     <FilterOptionPill
                       key={option}
@@ -354,7 +386,7 @@ export default function HomeScreen() {
               <Text
                 style={[styles.priceValue, { fontFamily: fonts.extrabold, color: tone.accent }]}
               >
-                $ {price.toLocaleString()}
+                {formatPrice(price)}
               </Text>
             </View>
             <Slider
@@ -411,6 +443,8 @@ interface FilterOptionPillProps {
 // wrapper for the same masksToBounds reason as Button's CTA glow.
 function FilterOptionPill({ label, selected, onPress }: FilterOptionPillProps) {
   const fonts = useFontFamily()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
 
   if (!selected) {
     return (
@@ -520,56 +554,12 @@ const styles = StyleSheet.create({
   },
   // `StyleSheet.absoluteFillObject` was removed in RN 0.86 — spelled out
   // directly since it needs to sit alongside alignItems/justifyContent.
-  heroPlaceholder: {
+  heroImage: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroFooter: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  heroText: {
-    gap: 5,
-  },
-  heroBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  heroBadgeLabel: {
-    fontSize: 10,
-    letterSpacing: 0.4,
-    color: '#fff',
-  },
-  heroTitle: {
-    fontSize: 17,
-    letterSpacing: -0.3,
-    lineHeight: 17 * 1.2,
-    color: '#fff',
-  },
-  heroPlay: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 2,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   searchRow: {
     flexDirection: 'row',

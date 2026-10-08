@@ -2,51 +2,52 @@ export interface Listing {
   id: string
   name: string
   spec: string
-  price: string
+  /** Always USD — the app's one real currency conversion happens at display time, via `useCurrency()` + `lib/currency.ts`'s `formatCurrency`, not here. */
+  priceUsd: number
   badge: string
 }
 
 // Placeholder demo data, ported verbatim from the Home mockup's `adData` —
 // there's no listings API/Typesense index wired up yet (see CLAUDE.md's
 // "Current sequencing"). Swap for a real fetch once the backend exists;
-// the shape here (name/spec/price/badge) is what `ListingCard` expects.
+// the shape here (name/spec/priceUsd/badge) is what `ListingCard` expects.
 export const featuredListings: Listing[] = [
   {
     id: '1',
     name: 'Ceylon Blue Sapphire',
     spec: '3.14 ct · Oval · GIA',
-    price: '$ 8,400',
+    priceUsd: 8400,
     badge: 'Live',
   },
   {
     id: '2',
     name: 'Padparadscha',
     spec: '2.02 ct · Cushion · SSEF',
-    price: '$ 14,900',
+    priceUsd: 14900,
     badge: 'Rare',
   },
   {
     id: '3',
     name: 'Star Ruby Cabochon',
     spec: '5.60 ct · Cabochon',
-    price: '$ 3,250',
+    priceUsd: 3250,
     badge: 'New',
   },
   {
     id: '4',
     name: 'Natural Spinel',
     spec: '1.88 ct · Round · NGJA',
-    price: '$ 1,980',
+    priceUsd: 1980,
     badge: 'Live',
   },
   {
     id: '5',
     name: "Cat's Eye Chrysoberyl",
     spec: '4.35 ct · Oval',
-    price: '$ 6,700',
+    priceUsd: 6700,
     badge: 'Hot',
   },
-  { id: '6', name: 'Rainbow Moonstone', spec: '6.10 ct · Pear', price: '$ 890', badge: 'New' },
+  { id: '6', name: 'Rainbow Moonstone', spec: '6.10 ct · Pear', priceUsd: 890, badge: 'New' },
 ]
 
 export const defaultLikedIds = new Set(['1', '4'])

@@ -30,6 +30,8 @@ export interface Dictionary {
     genericError: string
     optional: string
     reset: string
+    send: string
+    close: string
   }
   auth: {
     signIn: {
@@ -116,15 +118,16 @@ export interface Dictionary {
       /** Nav-row header title — "Verify Email", distinct from the body `title` below. */
       navTitle: string
       title: string
-      /** Precedes the bold email address inline; `subtitleSuffix` follows it on the same line. */
+      /** Precedes the bold email address inline. */
       subtitle: string
-      subtitleSuffix: string
-      step1: string
-      step2: string
-      step3: string
-      openMailApp: string
-      resendEmail: string
+      resendPrompt: string
+      resendCode: string
       resendIn: string
+      statusExpires: string
+      statusReadyToConfirm: string
+      statusVerified: string
+      submit: string
+      verified: string
       wrongAddress: string
       changeEmail: string
     }
@@ -140,7 +143,6 @@ export interface Dictionary {
     greetingMorning: string
     greetingAfternoon: string
     greetingEvening: string
-    liveAuctionBadge: string
     filtersTitle: string
     /** Uppercased via the same label style as `TextField` — not a separate all-caps string. */
     maxPriceLabel: string
@@ -174,33 +176,110 @@ export interface Dictionary {
     clarity: string
     soldBadge: string
   }
+  chat: {
+    presenceOnline: string
+    presenceTyping: string
+    today: string
+    safetyNotice: string
+    yourOffer: string
+    /** Contains a literal `{{price}}` marker — the listing's price is interpolated at the call site. */
+    listedAt: string
+    offerAccepted: string
+    offerPending: string
+    /** Contains a literal `{{name}}` marker — the seller's name is interpolated at the call site. */
+    composerPlaceholder: string
+    autoReply: string
+    quickBookViewing: string
+    quickRequestVideo: string
+    quickNegotiable: string
+    seen: string
+  }
+  gallery: {
+    photoLabel: string
+    videoLabel: string
+  }
   postAd: {
     title: string
-    stepPhotos: string
-    stepDetails: string
-    stepReview: string
-    addPhotos: string
-    coverPhotoHint: string
-    gemTab: string
-    equipmentTab: string
+    step1Title: string
+    step1Hint: string
+    step2Title: string
+    step2Hint: string
+    coverPhotoBadge: string
+    addCoverPhoto: string
+    addPhotoAccessibilityLabel: string
+    addVideo: string
+    photoTip: string
+    step3Title: string
+    step3Hint: string
     titleLabel: string
-    descriptionLabel: string
+    titlePlaceholder: string
+    weightLabel: string
+    weightPlaceholder: string
     priceLabel: string
-    priceOnRequestToggle: string
-    aiDraftButton: string
-    submitForReview: string
-    phoneVerificationRequired: string
-    verifyNow: string
+    pricePlaceholder: string
+    dimensionsLabel: string
+    dimensionsPlaceholder: string
+    shapeGroupLabel: string
+    treatmentGroupLabel: string
+    certificateGroupLabel: string
+    districtGroupLabel: string
+    descriptionLabel: string
+    descriptionPlaceholder: string
+    negotiableTitle: string
+    negotiableHint: string
+    step4Title: string
+    step4Hint: string
+    summaryCategory: string
+    summaryWeight: string
+    summaryDimensions: string
+    summaryTreatment: string
+    summaryCertificate: string
+    summaryDistrict: string
+    summaryPhotos: string
+    edit: string
+    negotiable: string
+    fixedPrice: string
+    reviewTip: string
+    reviewAdCta: string
+    publishAdCta: string
+    confirmTitle: string
+    confirmBody: string
+    publishNow: string
+    goBackAndEdit: string
+    deleteDraft: string
   }
   profile: {
-    editProfile: string
+    navTitle: string
+    editAccessibilityLabel: string
+    changePhotoTitle: string
+    takePhoto: string
+    chooseFromLibrary: string
+    removePhoto: string
+    verifiedBuyer: string
+    statSaved: string
+    statEnquiries: string
+    statPurchased: string
+    groupMyGems: string
     myAds: string
     myMembership: string
+    myProfile: string
     savedSearches: string
+    favourites: string
+    groupSettings: string
+    locationLanguageCurrency: string
     accountSettings: string
-    memberSince: string
-    verifiedBadge: string
-    followers: string
+    notifications: string
+    groupSupport: string
+    staySafe: string
+    faq: string
+    howToSellFast: string
+    termsConditions: string
+    privacyPolicy: string
+    logOut: string
+    logOutConfirmTitle: string
+    logOutConfirmMessage: string
+    logOutConfirmButton: string
+    footer: string
   }
   editProfile: {
     title: string
@@ -213,11 +292,53 @@ export interface Dictionary {
   }
   accountSettings: {
     title: string
+    sectionAppearance: string
+    gemTone: string
+    gemToneHint: string
+    liveGradient: string
+    liveGradientHint: string
+    sectionLanguageRegion: string
     language: string
+    country: string
+    currency: string
     notifications: string
+    notifEnquiriesTitle: string
+    notifEnquiriesHint: string
+    notifPriceDropsTitle: string
+    notifPriceDropsHint: string
+    notifNewListingsTitle: string
+    notifNewListingsHint: string
+    notifSavedDigestTitle: string
+    notifSavedDigestHint: string
+    notifMarketingTitle: string
+    notifMarketingHint: string
+    sectionSecurity: string
+    changePassword: string
+    twoStepVerification: string
+    devicesSessions: string
+    sheetSelectLanguage: string
+    sheetSelectCountry: string
+    sheetSelectCurrency: string
     privacy: string
     deleteAccount: string
     logOut: string
+  }
+  changePassword: {
+    heading: string
+    subtitle: string
+    currentPasswordLabel: string
+    currentPasswordPlaceholder: string
+    newPasswordLabel: string
+    confirmPasswordLabel: string
+    newPasswordPlaceholder: string
+    confirmPasswordPlaceholder: string
+    showPassword: string
+    hidePassword: string
+    mismatch: string
+    ruleLength: string
+    ruleNumberOrSymbol: string
+    ruleUppercase: string
+    submit: string
   }
   deleteAccount: {
     title: string
@@ -228,42 +349,127 @@ export interface Dictionary {
   notifications: {
     title: string
     empty: string
+    emptySubtitle: string
     markAllRead: string
+    tabAll: string
+    tabEnquiries: string
+    tabPriceDrops: string
+    tabNewListings: string
   }
   savedSearches: {
     title: string
-    empty: string
-    createFromSearch: string
-    alertFrequency: string
-    alertOff: string
-    alertDaily: string
-    alertInstant: string
+    blurb: string
+    viewResults: string
+    saveNewSearch: string
+    deleteConfirmTitle: string
+    deleteConfirmMessage: string
+    emptyTitle: string
+    emptySubtitle: string
+  }
+  favourites: {
+    emptyTitle: string
+    emptySubtitle: string
+  }
+  searchResults: {
+    emptyTitle: string
+    emptySubtitle: string
   }
   myAds: {
     title: string
-    empty: string
+    statTotalAds: string
+    statViews: string
+    statSaves: string
+    tabAll: string
     statusActive: string
-    statusPendingReview: string
-    statusExpired: string
+    statusPending: string
     statusSold: string
-    renew: string
-    markSold: string
+    statusExpired: string
+    edit: string
     promote: string
+    markSold: string
+    relist: string
+    view: string
+    renew: string
+    delete: string
+    deleteConfirmTitle: string
+    deleteConfirmMessage: string
+    emptyTitle: string
+    emptySubtitle: string
+    postNewAd: string
   }
   membership: {
     title: string
-    currentPlan: string
-    upgrade: string
-    freePlan: string
-    dealerPlan: string
-    showroomPlan: string
-    creditsBalance: string
-    manageBilling: string
+    currentPlanBadge: string
+    /** Contains literal `{{date}}`/`{{price}}` markers — the renewal date and formatted monthly price are interpolated at the call site. */
+    renewsLine: string
+    activeListingsLabel: string
+    /** Contains literal `{{used}}`/`{{total}}` markers. */
+    listingsUsed: string
+    /** Contains a literal `{{used}}` marker — shown instead of `listingsUsed` for Trader Pro's unlimited quota, which has no total to show a fraction against. */
+    listingsUnlimited: string
+    invoices: string
+    benefitsLabel: string
+    upgradeLabel: string
+    perMonth: string
+    currentBadge: string
+    bestValueBadge: string
+    paymentMethodLabel: string
+    change: string
+    /** Contains a literal `{{date}}` marker. */
+    expiresLabel: string
+    /** The per-tier action button's label for a plan above the current one. */
+    upgradeAction: string
+    /** Contains a literal `{{name}}` marker — screen-reader label for the "Upgrade" button on a specific tier. */
+    upgradeTo: string
+    /** Contains a literal `{{name}}` marker — screen-reader label for the "Change" button on a specific tier. */
+    changeTo: string
+    cancelMembership: string
+    plans: {
+      basic: { name: string; detail: string; benefits: string[] }
+      plus: { name: string; detail: string; benefits: string[] }
+      pro: { name: string; detail: string; benefits: string[] }
+    }
+  }
+  paymentMethod: {
+    title: string
+    cardholderLabel: string
+    expiresLabel: string
+    yourNamePlaceholder: string
+    expiryPlaceholder: string
+    savedCardsLabel: string
+    /** Contains a literal `{{date}}` marker — a saved card's own expiry is interpolated at the call site. */
+    cardExpiresRow: string
+    addNewCard: string
+    defaultBadge: string
+    cardDetailsLabel: string
+    cardNumberLabel: string
+    nameOnCardLabel: string
+    expiryFieldLabel: string
+    cvvLabel: string
+    cardNumberPlaceholder: string
+    namePlaceholder: string
+    makeDefaultLabel: string
+    /** Contains a literal `{{date}}` marker — the membership renewal date is interpolated at the call site. */
+    disclaimer: string
+    ctaSaved: string
+    ctaSaveCard: string
+    ctaKeepDefault: string
+    /** Contains a literal `{{label}}` marker — the saved card's own demo label (e.g. "Visa ending 4412") is interpolated at the call site, not translated itself. */
+    ctaUseCard: string
+    removeCard: string
   }
   noAccount: {
-    title: string
-    message: string
+    navTitle: string
+    heading: string
+    /** Contains a literal `{{identifier}}` marker — the phone number or email the user typed on Sign In is interpolated (and bolded) at the call site. */
+    subhead: string
+    perkBidding: string
+    perkValuations: string
+    perkEscrow: string
     signUpButton: string
+    tryDifferent: string
+    helpPrompt: string
+    contactLink: string
   }
   countryPicker: {
     title: string
@@ -293,6 +499,8 @@ export const en: Dictionary = {
     genericError: 'Something went wrong. Please try again.',
     optional: 'Optional',
     reset: 'Reset',
+    send: 'Send',
+    close: 'Close',
   },
   auth: {
     signIn: {
@@ -319,7 +527,7 @@ export const en: Dictionary = {
       nameLabel: 'Full name',
       namePlaceholder: 'Nimal Perera',
       mobileLabel: 'Mobile number',
-      emailLabel: 'Email address (optional)',
+      emailLabel: 'Email address',
       emailPlaceholder: 'you@gemhouse.lk',
       passwordLabel: 'Password',
       passwordPlaceholder: '8+ characters',
@@ -371,15 +579,16 @@ export const en: Dictionary = {
     },
     verifyEmail: {
       navTitle: 'Verify Email',
-      title: 'Check your inbox',
-      subtitle: 'We sent a verification link to',
-      subtitleSuffix: '. Tap it to confirm your account.',
-      step1: 'Open the email from Ceylon Gem Exchange',
-      step2: 'Tap the verification link inside',
-      step3: 'Return here to start browsing lots',
-      openMailApp: 'Open mail app',
-      resendEmail: 'Resend email',
+      title: 'Check your email',
+      subtitle: 'Enter the 6-digit code we sent to',
+      resendPrompt: "Didn't receive the code?",
+      resendCode: 'Resend',
       resendIn: 'Resend in',
+      statusExpires: 'Code expires in 5:00',
+      statusReadyToConfirm: 'Tap confirm to continue',
+      statusVerified: 'Code verified',
+      submit: 'Confirm',
+      verified: 'Verified',
       wrongAddress: 'Wrong address?',
       changeEmail: 'Change email',
     },
@@ -394,7 +603,6 @@ export const en: Dictionary = {
     greetingMorning: 'Good morning',
     greetingAfternoon: 'Good afternoon',
     greetingEvening: 'Good evening',
-    liveAuctionBadge: 'Live auction',
     filtersTitle: 'Filters',
     maxPriceLabel: 'Max price',
     showResultsCount: 'Show {{count}} results',
@@ -426,33 +634,111 @@ export const en: Dictionary = {
     clarity: 'Clarity',
     soldBadge: 'Sold',
   },
+  chat: {
+    presenceOnline: 'Online · replies in ~5 min',
+    presenceTyping: 'typing…',
+    today: 'Today',
+    safetyNotice:
+      'Keep payments on the exchange. Escrow protects both sides until the stone is verified.',
+    yourOffer: 'Your offer',
+    listedAt: 'Listed at {{price}} · held in escrow on accept',
+    offerAccepted: 'Accepted by seller',
+    offerPending: 'Awaiting seller response',
+    composerPlaceholder: 'Message {{name}}',
+    autoReply: 'Thanks — let me check with the owner and get back to you shortly.',
+    quickBookViewing: 'Book a viewing',
+    quickRequestVideo: 'Request video',
+    quickNegotiable: 'Is the price negotiable?',
+    seen: 'Seen',
+  },
+  gallery: {
+    photoLabel: 'Photo',
+    videoLabel: 'Video',
+  },
   postAd: {
     title: 'Post an ad',
-    stepPhotos: 'Photos',
-    stepDetails: 'Details',
-    stepReview: 'Review',
-    addPhotos: 'Add photos',
-    coverPhotoHint: 'The first photo is your cover photo',
-    gemTab: 'Gem',
-    equipmentTab: 'Equipment',
-    titleLabel: 'Title',
+    step1Title: 'Choose a category',
+    step1Hint: 'What kind of stone are you listing?',
+    step2Title: 'Add photos & video',
+    step2Hint: 'A clear cover photo doubles your enquiries.',
+    coverPhotoBadge: 'Cover photo',
+    addCoverPhoto: 'Tap to add your cover photo',
+    addPhotoAccessibilityLabel: 'Add photo',
+    addVideo: 'Add video',
+    photoTip:
+      'Daylight, plain background, and one loupe shot sell fastest. Up to 20 photos and one video.',
+    step3Title: 'Gem details',
+    step3Hint: 'Buyers filter on these — be precise.',
+    titleLabel: 'Ad title',
+    titlePlaceholder: 'e.g. Ceylon Blue Sapphire',
+    weightLabel: 'Weight',
+    weightPlaceholder: '3.14',
+    priceLabel: 'Asking price',
+    pricePlaceholder: '8,400',
+    dimensionsLabel: 'Dimensions',
+    dimensionsPlaceholder: 'e.g. 9.2 × 7.4 × 5.1 mm',
+    shapeGroupLabel: 'Shape / cut',
+    treatmentGroupLabel: 'Treatment',
+    certificateGroupLabel: 'Certificate',
+    districtGroupLabel: 'District',
     descriptionLabel: 'Description',
-    priceLabel: 'Price',
-    priceOnRequestToggle: 'Price on request',
-    aiDraftButton: 'Draft with AI',
-    submitForReview: 'Submit for review',
-    phoneVerificationRequired: 'Verify your phone number before publishing',
-    verifyNow: 'Verify now',
+    descriptionPlaceholder: 'Colour, clarity, origin, certificate details…',
+    negotiableTitle: 'Price negotiable',
+    negotiableHint: 'Buyers can send you offers',
+    step4Title: 'Review & publish',
+    step4Hint: 'Check everything before it goes live.',
+    summaryCategory: 'Category',
+    summaryWeight: 'Weight',
+    summaryDimensions: 'Dimensions',
+    summaryTreatment: 'Treatment',
+    summaryCertificate: 'Certificate',
+    summaryDistrict: 'District',
+    summaryPhotos: 'Photos',
+    edit: 'Edit',
+    negotiable: 'Negotiable',
+    fixedPrice: 'Fixed price',
+    reviewTip: 'Our team reviews certificates before your ad goes live. Usually under 2 hours.',
+    reviewAdCta: 'Review ad',
+    publishAdCta: 'Publish ad',
+    confirmTitle: 'Ready to publish?',
+    confirmBody:
+      "Once your ad is live, its details are locked for buyer trust — weight, treatment, certificate and price can't be edited afterwards. Please take one last look before you publish.",
+    publishNow: 'Publish now',
+    goBackAndEdit: 'Go back and edit',
+    deleteDraft: 'Delete this draft',
   },
   profile: {
-    editProfile: 'Edit profile',
+    navTitle: 'My account',
+    editAccessibilityLabel: 'Edit profile',
+    changePhotoTitle: 'Change photo',
+    takePhoto: 'Take photo',
+    chooseFromLibrary: 'Choose from library',
+    removePhoto: 'Remove photo',
+    verifiedBuyer: 'Verified buyer',
+    statSaved: 'Saved',
+    statEnquiries: 'Enquiries',
+    statPurchased: 'Purchased',
+    groupMyGems: 'My gems',
     myAds: 'My ads',
     myMembership: 'My membership',
+    myProfile: 'My profile',
     savedSearches: 'Saved searches',
+    favourites: 'Favourites',
+    groupSettings: 'Settings',
+    locationLanguageCurrency: 'Location, language & currency',
     accountSettings: 'Account settings',
-    memberSince: 'Member since',
-    verifiedBadge: 'Verified seller',
-    followers: 'Followers',
+    notifications: 'Notifications',
+    groupSupport: 'Support',
+    staySafe: 'Stay safe',
+    faq: 'FAQ',
+    howToSellFast: 'How to sell fast',
+    termsConditions: 'Terms and conditions',
+    privacyPolicy: 'Privacy policy',
+    logOut: 'Log out',
+    logOutConfirmTitle: 'Log out?',
+    logOutConfirmMessage: "You'll need to sign in again to buy, sell, or message on the exchange.",
+    logOutConfirmButton: 'Log out',
+    footer: 'Ceylon Gem Exchange · v2.4.1',
   },
   editProfile: {
     title: 'Edit profile',
@@ -465,11 +751,53 @@ export const en: Dictionary = {
   },
   accountSettings: {
     title: 'Account settings',
+    sectionAppearance: 'Appearance',
+    gemTone: 'Gem tone',
+    gemToneHint: 'Accent colour across the app',
+    liveGradient: 'Live gradient',
+    liveGradientHint: 'Animate the background on every screen',
+    sectionLanguageRegion: 'Language & region',
     language: 'Language',
+    country: 'Country',
+    currency: 'Currency',
     notifications: 'Notifications',
+    notifEnquiriesTitle: 'Buyer enquiries',
+    notifEnquiriesHint: 'New messages about your ads',
+    notifPriceDropsTitle: 'Price drops',
+    notifPriceDropsHint: 'Saved gems that get cheaper',
+    notifNewListingsTitle: 'New listings',
+    notifNewListingsHint: 'Matches for your saved searches',
+    notifSavedDigestTitle: 'Saved search digest',
+    notifSavedDigestHint: 'One summary email each week',
+    notifMarketingTitle: 'Offers & tips',
+    notifMarketingHint: 'Selling tips and promotions',
+    sectionSecurity: 'Security',
+    changePassword: 'Change password',
+    twoStepVerification: 'Two-step verification',
+    devicesSessions: 'Devices & sessions',
+    sheetSelectLanguage: 'Select language',
+    sheetSelectCountry: 'Select country',
+    sheetSelectCurrency: 'Select currency',
     privacy: 'Privacy',
     deleteAccount: 'Delete account',
     logOut: 'Log out',
+  },
+  changePassword: {
+    heading: 'Set a new password',
+    subtitle: "Choose a password you haven't used before. You'll be signed out on other devices.",
+    currentPasswordLabel: 'CURRENT PASSWORD',
+    currentPasswordPlaceholder: 'Enter current password',
+    newPasswordLabel: 'NEW PASSWORD',
+    confirmPasswordLabel: 'CONFIRM PASSWORD',
+    newPasswordPlaceholder: '8+ characters',
+    confirmPasswordPlaceholder: 'Re-enter password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    mismatch: "Passwords don't match",
+    ruleLength: 'At least 8 characters',
+    ruleNumberOrSymbol: 'One number or symbol',
+    ruleUppercase: 'One uppercase letter',
+    submit: 'Update password',
   },
   deleteAccount: {
     title: 'Delete account',
@@ -480,42 +808,145 @@ export const en: Dictionary = {
   notifications: {
     title: 'Notifications',
     empty: "You're all caught up",
+    emptySubtitle: 'Nothing new in this filter right now.',
     markAllRead: 'Mark all as read',
+    tabAll: 'All',
+    tabEnquiries: 'Enquiries',
+    tabPriceDrops: 'Price drops',
+    tabNewListings: 'New listings',
   },
   savedSearches: {
     title: 'Saved searches',
-    empty: 'No saved searches yet',
-    createFromSearch: 'Save this search',
-    alertFrequency: 'Alert me',
-    alertOff: 'Off',
-    alertDaily: 'Daily digest',
-    alertInstant: 'Instantly',
+    blurb: "Turn on alerts and we'll notify you the moment a matching gem is listed.",
+    viewResults: 'View results',
+    saveNewSearch: 'Save a new search',
+    deleteConfirmTitle: 'Delete this saved search?',
+    deleteConfirmMessage: "You'll stop getting alerts for new matches.",
+    emptyTitle: 'No saved searches yet',
+    emptySubtitle: 'Searches you save will appear here with alerts for new matches.',
+  },
+  favourites: {
+    emptyTitle: 'No favourites yet',
+    emptySubtitle: 'Tap the heart on a listing to save it here.',
+  },
+  searchResults: {
+    emptyTitle: 'No matches yet',
+    emptySubtitle: "We'll show new listings here as they match this search.",
   },
   myAds: {
     title: 'My ads',
-    empty: "You haven't posted any ads yet",
+    statTotalAds: 'Total ads',
+    statViews: 'Views',
+    statSaves: 'Saves',
+    tabAll: 'All',
     statusActive: 'Active',
-    statusPendingReview: 'Pending review',
-    statusExpired: 'Expired',
+    statusPending: 'Pending',
     statusSold: 'Sold',
-    renew: 'Renew',
-    markSold: 'Mark as sold',
+    statusExpired: 'Expired',
+    edit: 'Edit',
     promote: 'Promote',
+    markSold: 'Mark sold',
+    relist: 'Relist',
+    view: 'View',
+    renew: 'Renew',
+    delete: 'Delete',
+    deleteConfirmTitle: 'Delete this ad?',
+    deleteConfirmMessage: 'This will permanently remove the listing from your account.',
+    emptyTitle: 'Nothing here yet',
+    emptySubtitle: 'Ads you post in this state will appear here.',
+    postNewAd: 'Post a new ad',
   },
   membership: {
     title: 'My membership',
-    currentPlan: 'Current plan',
-    upgrade: 'Upgrade',
-    freePlan: 'Free',
-    dealerPlan: 'Dealer',
-    showroomPlan: 'Showroom',
-    creditsBalance: 'Credits balance',
-    manageBilling: 'Manage billing',
+    currentPlanBadge: 'CURRENT PLAN',
+    renewsLine: 'Renews {{date}} · {{price}} / month',
+    activeListingsLabel: 'ACTIVE LISTINGS',
+    listingsUsed: '{{used}} of {{total}} used',
+    listingsUnlimited: '{{used}} active · unlimited',
+    invoices: 'Invoices',
+    benefitsLabel: 'YOUR CURRENT BENEFITS',
+    upgradeLabel: 'UPGRADE',
+    perMonth: '/ month',
+    currentBadge: 'Current',
+    bestValueBadge: 'Best value',
+    paymentMethodLabel: 'PAYMENT METHOD',
+    change: 'Change',
+    expiresLabel: 'Expires {{date}}',
+    upgradeAction: 'Upgrade',
+    upgradeTo: 'Upgrade to {{name}}',
+    changeTo: 'Change to {{name}}',
+    cancelMembership: 'Cancel membership',
+    plans: {
+      basic: {
+        name: 'Trader Basic',
+        detail: '5 active listings · standard placement',
+        benefits: [
+          '5 active listings at any time',
+          'Standard placement in district search',
+          'Up to 4 photos per ad',
+          'Email support',
+        ],
+      },
+      plus: {
+        name: 'Trader Plus',
+        detail: '20 active listings · priority in search',
+        benefits: [
+          '20 active listings at any time',
+          'Priority placement in district search',
+          'Verified seller badge on every ad',
+          'Buyer enquiry analytics',
+        ],
+      },
+      pro: {
+        name: 'Trader Pro',
+        detail: 'Unlimited listings · featured slots weekly',
+        benefits: [
+          'Unlimited active listings',
+          'Two featured home slots every week',
+          'Video on every listing · 20 photos',
+          'Dedicated account manager & WhatsApp desk',
+        ],
+      },
+    },
+  },
+  paymentMethod: {
+    title: 'Payment method',
+    cardholderLabel: 'CARDHOLDER',
+    expiresLabel: 'EXPIRES',
+    yourNamePlaceholder: 'YOUR NAME',
+    expiryPlaceholder: 'MM / YY',
+    savedCardsLabel: 'SAVED CARDS',
+    cardExpiresRow: 'Expires {{date}}',
+    addNewCard: 'Add a new card',
+    defaultBadge: 'Default',
+    cardDetailsLabel: 'CARD DETAILS',
+    cardNumberLabel: 'CARD NUMBER',
+    nameOnCardLabel: 'NAME ON CARD',
+    expiryFieldLabel: 'EXPIRY',
+    cvvLabel: 'CVV',
+    cardNumberPlaceholder: '1234 5678 9012 3456',
+    namePlaceholder: 'Nimal Perera',
+    makeDefaultLabel: 'Use as default for membership renewals',
+    disclaimer:
+      'Card details are encrypted and stored by our payment processor. Trader Plus renews on {{date}}.',
+    ctaSaved: 'Saved',
+    ctaSaveCard: 'Save card',
+    ctaKeepDefault: 'Keep as default',
+    ctaUseCard: 'Use {{label}}',
+    removeCard: 'Remove this card',
   },
   noAccount: {
-    title: 'Create an account to continue',
-    message: 'Sign up to save listings, message sellers, and post your own ads.',
-    signUpButton: 'Sign up',
+    navTitle: 'Sign In',
+    heading: "You don't have\nan account",
+    subhead:
+      "We couldn't find a trader profile for {{identifier}}. Create account to start buying certified gems.",
+    perkBidding: 'Bid on live certified lots',
+    perkValuations: 'Track valuations in your currency',
+    perkEscrow: 'Settle with escrow protection',
+    signUpButton: 'Please Sign Up',
+    tryDifferent: 'Try different number or email',
+    helpPrompt: 'Need help?',
+    contactLink: 'Contact the exchange',
   },
   countryPicker: {
     title: 'Select country',

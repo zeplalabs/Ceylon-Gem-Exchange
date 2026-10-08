@@ -1,44 +1,52 @@
 import { useSignUp } from '@clerk/expo'
-import { defaultGemTone, gemTones, neutral } from '@ceylon-gems/ui-tokens'
-import * as Linking from 'expo-linking'
+import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Button, GlassSurface, IconButton, PressableScale } from '../components'
-import { ArrowRightIcon, ChevronLeftIcon, EnvelopeIcon } from '../components/icons'
+import {
+  CodeCellRow,
+  GlassSurface,
+  IconButton,
+  Keypad,
+  PressableScale,
+  useKeypadCode,
+} from '../components'
+import { ArrowRightIcon, ChevronLeftIcon, GemIcon } from '../components/icons'
 import { GRADIENT_140 } from '../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
-
-const tone = gemTones[defaultGemTone]
+import { useGemTone } from '../providers/GemToneProvider'
+const CODE_LENGTH = 6
 
 // Reached from /verify-phone once phone verification completes AND an
-// email was supplied (email is optional, so Clerk already marks the
-// sign-up "complete" without it — this is a non-blocking nudge, not a
-// gate). Ported from "Ceylon Gem Exchange Email Verification.dc.html",
-// which uses Clerk's email_link strategy (no code-entry UI at all — just
-// "Open mail app" + resend). verifications.waitForEmailLinkVerification()
-// is Clerk's own purpose-built helper for this: it polls the sign-up
-// resource server-side, so it resolves once the link is confirmed
-// regardless of which device/browser actually opened it — this screen
-// doesn't need its own deep-link handler for that. `verificationUrl` only
-// needs to be *some* resolvable destination for the post-tap redirect
-// (this app's own scheme, via Linking.createURL) — the verification
-// itself completes on Clerk's own domain, the first hop the emailed link
-// visits, before ever reaching verificationUrl.
+// email was supplied — this Clerk instance requires a supplied email to
+// be verified before the sign-up can complete (status stays
+// 'missing_requirements' until then), so this is a real gate, not a
+// skippable nudge. Uses Clerk's `email_code` strategy (sendEmailCode()/
+// verifyEmailCode()), which is what this instance's environment config
+// actually lists for email_address — an earlier version of this screen
+// used the `email_link` strategy instead, which doesn't match. Layout and
+// the keypad/cell UI itself are shared with /verify-phone (via
+// components/KeypadCodeInput.tsx) so the two code-entry screens stay
+// visually and behaviorally uniform, per the app's own on-screen-keypad
+// design rather than the OS keyboard.
 export default function VerifyEmailScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
   const { signUp } = useSignUp()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
 
+  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''))
+  const [verified, setVerified] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(45)
+  const [submitting, setSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const finalizedRef = useRef(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -48,35 +56,46 @@ export default function VerifyEmailScreen() {
   }, [])
 
   useEffect(() => {
-    waitForVerification()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once on mount; handlers below always read the latest `signUp`/`router` via closure.
+    signUp.verifications.sendEmailCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once on mount; handlers below always read the latest `signUp` via closure.
   }, [])
 
   const canResend = secondsLeft === 0
 
-  async function finalizeAndGoHome() {
-    if (finalizedRef.current) return
-    finalizedRef.current = true
-    try {
-      await signUp.finalize()
-    } catch {
-      // signUp.status was already 'complete' before this screen ever showed
-      // (see verify-phone.tsx) — finalize() failing here doesn't block the
-      // user from continuing.
-    }
-    router.replace('/')
+  function handleChangeCode(next: string[]) {
+    setCode(next)
+    setVerified(false)
+    setError(null)
   }
 
-  async function waitForVerification() {
-    const { error: waitError } = await signUp.verifications.waitForEmailLinkVerification()
-    if (finalizedRef.current) return
-    if (waitError) {
-      setError(
-        waitError.longMessage ?? 'The link expired or failed. Resend the email and try again.',
-      )
-      return
+  const { active, setActive, press, filled } = useKeypadCode({
+    length: CODE_LENGTH,
+    value: code,
+    onChangeText: handleChangeCode,
+  })
+
+  async function handleConfirm() {
+    if (!filled || submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({
+        code: code.join(''),
+      })
+      if (verifyError) {
+        setError(verifyError.longMessage ?? 'Invalid code. Please try again.')
+        return
+      }
+      setVerified(true)
+      if (signUp.status === 'complete') {
+        await signUp.finalize()
+        router.replace('/')
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
-    await finalizeAndGoHome()
   }
 
   async function handleResend() {
@@ -84,34 +103,38 @@ export default function VerifyEmailScreen() {
     setResending(true)
     setError(null)
     try {
-      await signUp.verifications.sendEmailLink({ verificationUrl: Linking.createURL('/') })
+      await signUp.verifications.sendEmailCode()
       setSecondsLeft(45)
-      waitForVerification()
+      setCode(Array(CODE_LENGTH).fill(''))
+      setVerified(false)
     } catch {
-      setError('Could not resend the email. Please try again.')
+      setError('Could not resend the code. Please try again.')
     } finally {
       setResending(false)
     }
   }
 
-  async function openMailApp() {
-    try {
-      if (Platform.OS === 'ios') {
-        const canOpenMail = await Linking.canOpenURL('message://')
-        await Linking.openURL(canOpenMail ? 'message://' : 'mailto:')
-      } else {
-        await Linking.openURL('mailto:')
-      }
-    } catch {
-      // No mail client available to open — nothing actionable to recover
-      // into; the emailed link still works if the user opens Mail manually.
-    }
+  // The stack is [sign-up, verify-email] at this point — verify-phone.tsx
+  // reaches here via router.replace(), not push(), so a single back() step
+  // lands back on sign-up with the entered fields intact, letting the user
+  // correct the email address rather than restarting from nothing.
+  function goBackToEditEmail() {
+    router.back()
   }
 
+  const statusText = verified
+    ? t.auth.verifyEmail.statusVerified
+    : filled
+      ? t.auth.verifyEmail.statusReadyToConfirm
+      : t.auth.verifyEmail.statusExpires
+  const ctaLabel = submitting
+    ? '…'
+    : verified
+      ? t.auth.verifyEmail.verified
+      : t.auth.verifyEmail.submit
   const resendLabel = canResend
-    ? t.auth.verifyEmail.resendEmail
+    ? t.auth.verifyEmail.resendCode
     : `${t.auth.verifyEmail.resendIn} ${secondsLeft}s`
-  const steps = [t.auth.verifyEmail.step1, t.auth.verifyEmail.step2, t.auth.verifyEmail.step3]
 
   return (
     <LiveGradientBackground>
@@ -120,18 +143,21 @@ export default function VerifyEmailScreen() {
           <IconButton
             icon={<ChevronLeftIcon />}
             accessibilityLabel={t.common.back}
-            onPress={finalizeAndGoHome}
+            onPress={goBackToEditEmail}
             size={40}
             radius={14}
           />
-          <Text style={[styles.navTitle, { fontFamily: fonts.extrabold }]}>
+          {/* `pointerEvents="none"` — the mockup's own `margin-left:-40px`
+              centering trick makes this Text's hit box (flex:1, so its
+              bounds span the full row) overlap the back IconButton to its
+              left. A later sibling paints on top, so without this the
+              title silently ate every tap meant for the button. */}
+          <Text style={[styles.navTitle, { fontFamily: fonts.extrabold }]} pointerEvents="none">
             {t.auth.verifyEmail.navTitle}
           </Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <View style={styles.topSpacer} />
-
           <View style={styles.sealWrap}>
             <View
               style={[
@@ -139,32 +165,22 @@ export default function VerifyEmailScreen() {
                 Platform.select({
                   ios: {
                     shadowColor: `rgb(${tone.halo})`,
-                    shadowOffset: { width: 0, height: 18 },
+                    shadowOffset: { width: 0, height: 16 },
                     shadowOpacity: 0.9,
-                    shadowRadius: 26,
+                    shadowRadius: 24,
                   },
                   android: { elevation: 8 },
                 }),
               ]}
             >
-              <GlassSurface clarity={55} rim={tone.rim} radius={50} style={styles.seal}>
-                <EnvelopeIcon size={38} color={tone.ink} strokeWidth={1.4} />
+              <GlassSurface clarity={55} rim={tone.rim} radius={48} style={styles.seal}>
+                <GemIcon
+                  size={34}
+                  ink={tone.ink}
+                  inkSoft={`rgba(${tone.rim},0.7)`}
+                  strokeWidth={1.5}
+                />
               </GlassSurface>
-              <View
-                style={[
-                  styles.ping,
-                  { backgroundColor: tone.accent },
-                  Platform.select({
-                    ios: {
-                      shadowColor: tone.accent,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.9,
-                      shadowRadius: 7,
-                    },
-                    android: { elevation: 4 },
-                  }),
-                ]}
-              />
             </View>
           </View>
 
@@ -177,52 +193,26 @@ export default function VerifyEmailScreen() {
             <Text style={[styles.destination, { fontFamily: fonts.bold }]}>
               {signUp.emailAddress}
             </Text>
-            {t.auth.verifyEmail.subtitleSuffix}
           </Text>
 
-          <GlassSurface clarity={55} radius={22} style={styles.card}>
-            {steps.map((text, index) => (
-              <View key={index} style={styles.stepRow}>
-                <LinearGradient
-                  colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
-                  start={GRADIENT_140.start}
-                  end={GRADIENT_140.end}
-                  style={[styles.stepNum, { borderColor: `rgba(${tone.rim},0.45)` }]}
-                >
-                  <Text style={[styles.stepNumLabel, { fontFamily: fonts.extrabold }]}>
-                    {index + 1}
-                  </Text>
-                </LinearGradient>
-                <Text style={[styles.stepText, { fontFamily: fonts.semibold }]}>{text}</Text>
-              </View>
-            ))}
-          </GlassSurface>
-
-          <Button
-            label={t.auth.verifyEmail.openMailApp}
-            onPress={openMailApp}
-            icon={<ArrowRightIcon />}
-            iconPosition="right"
-            style={styles.cta}
+          <CodeCellRow
+            length={CODE_LENGTH}
+            value={code}
+            active={active}
+            filled={filled}
+            onPressCell={setActive}
           />
 
-          <PressableScale
-            onPress={handleResend}
-            disabled={!canResend || resending}
-            accessibilityLabel={resendLabel}
+          <Text
+            style={[
+              styles.status,
+              { fontFamily: fonts.semibold },
+              verified && { color: tone.accent },
+            ]}
+            accessibilityLiveRegion="polite"
           >
-            <GlassSurface clarity={55} radius={25} style={styles.resendPill}>
-              <Text
-                style={[
-                  styles.resendLabel,
-                  { fontFamily: fonts.bold },
-                  { color: canResend ? neutral.white : 'rgba(255,255,255,0.5)' },
-                ]}
-              >
-                {resendLabel}
-              </Text>
-            </GlassSurface>
-          </PressableScale>
+            {statusText}
+          </Text>
 
           {error ? (
             <Text
@@ -234,21 +224,87 @@ export default function VerifyEmailScreen() {
             </Text>
           ) : null}
 
-          <View style={styles.bottomSpacer} />
+          <PressableScale
+            onPress={handleConfirm}
+            disabled={submitting}
+            accessibilityLabel={ctaLabel}
+          >
+            {/* Shadow lives on this unclipped wrapper, not the LinearGradient
+                itself — see Button.tsx's identical comment on why a shadow
+                set alongside borderRadius on a clipped gradient layer never
+                renders on iOS. */}
+            <View
+              style={[
+                styles.ctaShadowWrap,
+                Platform.select({
+                  ios: {
+                    shadowColor: `rgb(${tone.halo})`,
+                    shadowOffset: { width: 0, height: 12 },
+                    shadowOpacity: filled ? 0.9 : 0.35,
+                    shadowRadius: 18,
+                  },
+                  android: { elevation: filled ? 8 : 2 },
+                }),
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  `${tone.cta[0]}${filled ? '0.9' : '0.45'})`,
+                  `${tone.cta[1]}${filled ? '0.76' : '0.32'})`,
+                ]}
+                start={GRADIENT_140.start}
+                end={GRADIENT_140.end}
+                style={[
+                  styles.cta,
+                  { borderColor: `rgba(${tone.rim},${filled ? '0.5' : '0.28'})` },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.ctaLabel,
+                    { fontFamily: fonts.semibold },
+                    { color: filled ? neutral.white : 'rgba(255,255,255,0.65)' },
+                  ]}
+                >
+                  {ctaLabel}
+                </Text>
+                <ArrowRightIcon size={17} />
+              </LinearGradient>
+            </View>
+          </PressableScale>
+
+          <View style={styles.resendRow}>
+            <Text style={[styles.resendPrompt, { fontFamily: fonts.medium }]}>
+              {t.auth.verifyEmail.resendPrompt}
+            </Text>
+            <PressableScale
+              onPress={handleResend}
+              disabled={!canResend || resending}
+              accessibilityLabel={resendLabel}
+            >
+              <Text style={[styles.resendLink, { fontFamily: fonts.bold, color: tone.accent }]}>
+                {resendLabel}
+              </Text>
+            </PressableScale>
+          </View>
 
           <View style={styles.wrongRow}>
             <Text style={[styles.wrongPrompt, { fontFamily: fonts.medium }]}>
               {t.auth.verifyEmail.wrongAddress}
             </Text>
             <PressableScale
-              onPress={finalizeAndGoHome}
+              onPress={goBackToEditEmail}
               accessibilityLabel={t.auth.verifyEmail.changeEmail}
             >
-              <Text style={[styles.wrongLink, { fontFamily: fonts.bold }]}>
+              <Text style={[styles.wrongLink, { fontFamily: fonts.bold, color: tone.accent }]}>
                 {t.auth.verifyEmail.changeEmail}
               </Text>
             </PressableScale>
           </View>
+
+          <View style={styles.spacer} />
+
+          <Keypad onPressKey={press} />
         </ScrollView>
       </SafeAreaView>
     </LiveGradientBackground>
@@ -259,9 +315,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  // Exact values from the mockup's default glassClarity (55)/density
-  // ("Airy") computations — not the general spacing/fontSize/radii scales,
-  // which don't happen to land on these numbers.
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,41 +332,30 @@ const styles = StyleSheet.create({
   body: {
     flexGrow: 1,
     paddingHorizontal: 22,
-  },
-  topSpacer: {
-    flex: 1,
-    minHeight: 8,
+    justifyContent: 'space-between',
   },
   sealWrap: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 26,
   },
   sealShadowWrap: {
-    borderRadius: 50,
+    borderRadius: 48,
   },
   seal: {
-    width: 100,
-    height: 100,
+    width: 96,
+    height: 96,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ping: {
-    position: 'absolute',
-    top: 8,
-    right: 10,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
   heading: {
-    marginTop: 24,
+    marginTop: 22,
     textAlign: 'center',
-    fontSize: 28,
+    fontSize: 26,
     letterSpacing: -0.4,
     color: neutral.white,
   },
   subheading: {
-    marginTop: 10,
+    marginTop: 8,
     textAlign: 'center',
     fontSize: 13,
     lineHeight: 13 * 1.55,
@@ -322,63 +364,56 @@ const styles = StyleSheet.create({
   destination: {
     color: neutral.white,
   },
-  card: {
-    flexDirection: 'column',
-    gap: 12,
-    marginTop: 22,
-    padding: 16,
-  },
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-  },
-  stepNum: {
-    width: 22,
-    height: 22,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNumLabel: {
-    fontSize: 11,
-    color: neutral.white,
-  },
-  stepText: {
-    flex: 1,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.72)',
-  },
-  cta: {
-    marginTop: 20,
-  },
-  resendPill: {
+  status: {
     marginTop: 12,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resendLabel: {
-    fontSize: 14,
+    minHeight: 18,
+    textAlign: 'center',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
   },
   error: {
-    marginTop: 8,
+    marginTop: 4,
     textAlign: 'center',
     fontSize: 12,
     color: neutral.danger.textStrong,
   },
-  bottomSpacer: {
-    flex: 1,
-    minHeight: 16,
+  ctaShadowWrap: {
+    marginTop: 20,
+    borderRadius: 28,
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.4)',
+  },
+  ctaLabel: {
+    fontSize: 15,
+  },
+  resendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
+  resendPrompt: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  resendLink: {
+    fontSize: 12,
   },
   wrongRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingBottom: 16,
+    marginTop: 10,
   },
   wrongPrompt: {
     fontSize: 12,
@@ -386,6 +421,9 @@ const styles = StyleSheet.create({
   },
   wrongLink: {
     fontSize: 12,
-    color: tone.accent,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: 14,
   },
 })

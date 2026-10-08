@@ -1,7 +1,9 @@
-import { defaultGemTone, gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
+import { gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
+import { useGemTone } from '../../providers/GemToneProvider'
+import { useLiveGradient } from '../../providers/LiveGradientProvider'
 
 // This file's tsconfig include (**/*.tsx) means it's typechecked in the
 // same program as every native file, and this project deliberately keeps
@@ -130,12 +132,10 @@ interface LiveGradientBackgroundProps {
 const SPEED = 1.5
 const GRAIN = 0.22
 
-export function LiveGradientBackground({
-  tone = defaultGemTone,
-  children,
-  style,
-}: LiveGradientBackgroundProps) {
-  const palette = gemTones[tone]
+export function LiveGradientBackground({ tone, children, style }: LiveGradientBackgroundProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
+  const { liveGradientEnabled } = useLiveGradient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- react-native-web's View forwards refs to the real DOM node, but its typed ref shape isn't HTMLCanvasElement
   const canvasRef = useRef<any>(null)
 
@@ -201,7 +201,7 @@ export function LiveGradientBackground({
     let raf: number
     const render = (t: number) => {
       gl.uniform2f(locs.res, canvas.width, canvas.height)
-      gl.uniform1f(locs.time, t * 0.001 * SPEED)
+      gl.uniform1f(locs.time, liveGradientEnabled ? t * 0.001 * SPEED : 0)
       gl.uniform1f(locs.grain, GRAIN)
       gl.uniform3f(locs.bg, ...hexToRgb(bg))
 
@@ -217,7 +217,7 @@ export function LiveGradientBackground({
       ro.disconnect()
       cancelAnimationFrame(raf)
     }
-  }, [palette])
+  }, [palette, liveGradientEnabled])
 
   return (
     <View style={[styles.fill, style]}>

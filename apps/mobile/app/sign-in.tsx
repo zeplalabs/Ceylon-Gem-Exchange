@@ -1,5 +1,5 @@
 import { useSignIn } from '@clerk/expo'
-import { defaultGemTone, fontSize, gemTones, spacing } from '@ceylon-gems/ui-tokens'
+import { fontSize, gemTones, spacing } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -29,9 +29,7 @@ import { LiveGradientBackground } from '../components/primitives/LiveGradientBac
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
 import { countries, defaultCountryIndex, type Country } from '../lib/countries'
-
-const tone = gemTones[defaultGemTone]
-const iconSoft = `rgba(${tone.rim},0.75)`
+import { useGemTone } from '../providers/GemToneProvider'
 // countries[defaultCountryIndex] is always Sri Lanka — a fixed array entry,
 // not user input — so this cast is safe under noUncheckedIndexedAccess.
 const defaultCountry = countries[defaultCountryIndex] as Country
@@ -53,6 +51,9 @@ export default function SignInScreen() {
   const fonts = useFontFamily()
   const router = useRouter()
   const { signIn } = useSignIn()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
+  const iconSoft = `rgba(${tone.rim},0.75)`
 
   const [mode, setMode] = useState<IdentifierMode>('mobile')
   const [identifier, setIdentifier] = useState('')
@@ -79,6 +80,15 @@ export default function SignInScreen() {
       const { error } = await signIn.password({ identifier: trimmed, password })
 
       if (error) {
+        // Clerk's own code for "no user matches this identifier" — a
+        // distinct case from a wrong password or a network error (both of
+        // which stay here as an inline form error), so it gets its own
+        // screen (No Account) naming what was typed, rather than a generic
+        // error banner.
+        if (error.code === 'form_identifier_not_found') {
+          router.push({ pathname: '/no-account', params: { identifier: trimmed } })
+          return
+        }
         setFormError(error.longMessage ?? t.common.genericError)
         return
       }
@@ -179,7 +189,10 @@ export default function SignInScreen() {
                   {t.auth.signIn.rememberMe}
                 </Text>
               </Checkbox>
-              <Link href="/forgot-password" style={[styles.forgotLink, { fontFamily: fonts.bold }]}>
+              <Link
+                href="/forgot-password"
+                style={[styles.forgotLink, { fontFamily: fonts.bold, color: tone.accent }]}
+              >
                 {t.auth.signIn.forgotPassword}
               </Link>
             </View>
@@ -224,6 +237,18 @@ export default function SignInScreen() {
                 <WhatsAppIcon />
                 <Text style={[styles.socialLabel, { fontFamily: fonts.semibold }]}>WhatsApp</Text>
               </GlassSurface>
+            </View>
+
+            <View style={styles.footerRow}>
+              <Text style={[styles.footerText, { fontFamily: fonts.medium }]}>
+                {t.auth.signIn.noAccount}
+              </Text>
+              <Link
+                href="/sign-up"
+                style={[styles.footerLink, { fontFamily: fonts.semibold, color: tone.accent }]}
+              >
+                {t.auth.signIn.signUpLink}
+              </Link>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -301,7 +326,6 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     fontSize: fontSize.xs,
-    color: tone.accent,
   },
   submitButton: {
     marginTop: 22,
@@ -337,5 +361,18 @@ const styles = StyleSheet.create({
   socialLabel: {
     fontSize: fontSize.xs,
     color: 'rgba(255,255,255,0.75)',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingTop: 14,
+  },
+  footerText: {
+    fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  footerLink: {
+    fontSize: fontSize.xs,
   },
 })

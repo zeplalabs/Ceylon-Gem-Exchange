@@ -1,12 +1,4 @@
-import {
-  defaultGemTone,
-  fontSize,
-  gemTones,
-  neutral,
-  radii,
-  spacing,
-  type GemTone,
-} from '@ceylon-gems/ui-tokens'
+import { fontSize, gemTones, neutral, radii, spacing, type GemTone } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
@@ -17,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useGemTone } from '../providers/GemToneProvider'
 import { GRADIENT_140 } from './primitives/gradientAngle'
 import { GlassSurface } from './primitives/GlassSurface'
 import { PressableScale } from './primitives/PressableScale'
@@ -32,6 +25,7 @@ interface ButtonProps {
   onPress?: () => void
   disabled?: boolean
   loading?: boolean
+  /** Overrides the app's active gem tone (from GemToneProvider) for just this button — most callers omit this and inherit the theme. */
   tone?: GemTone
   /** Uses the semantic danger gradient instead of the gem tone — delete/remove actions. */
   danger?: boolean
@@ -50,13 +44,14 @@ export function Button({
   onPress,
   disabled,
   loading,
-  tone = defaultGemTone,
+  tone,
   danger,
   icon,
   iconPosition = 'left',
   style,
 }: ButtonProps) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const fonts = useFontFamily()
   const isDisabled = disabled || loading
   const gradient: readonly [string, string] = danger
@@ -174,13 +169,14 @@ export function IconButton({
   onPress,
   active,
   disabled,
-  tone = defaultGemTone,
+  tone,
   radius = radii.full,
   size = 48,
   accessibilityLabel,
   style,
 }: IconButtonProps) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   // Only announce a selected state when `active` is meaningfully a toggle
   // (e.g. a favorite heart) — most IconButton uses are plain one-shot
   // actions (back, search) with no on/off state to report.
@@ -255,11 +251,12 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
-  tone = defaultGemTone,
+  tone,
   variant = 'solid',
   style,
 }: SegmentedControlProps<T>) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const fonts = useFontFamily()
 
   const activeIndex = Math.max(
@@ -434,8 +431,9 @@ interface ChipProps {
 
 // Small selectable pill for filters/tags (category chips on Post Ad,
 // search-filter chips on Saved Searches).
-export function Chip({ label, selected, onPress, tone = defaultGemTone, style }: ChipProps) {
-  const palette = gemTones[tone]
+export function Chip({ label, selected, onPress, tone, style }: ChipProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const fonts = useFontFamily()
 
   if (selected) {

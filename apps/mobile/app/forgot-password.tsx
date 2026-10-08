@@ -1,5 +1,5 @@
 import { useSignIn } from '@clerk/expo'
-import { defaultGemTone, gemTones, neutral } from '@ceylon-gems/ui-tokens'
+import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, useRouter } from 'expo-router'
 import { useState, type ReactNode } from 'react'
@@ -32,9 +32,7 @@ import { LiveGradientBackground } from '../components/primitives/LiveGradientBac
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
 import { countries, defaultCountryIndex, type Country } from '../lib/countries'
-
-const tone = gemTones[defaultGemTone]
-const iconSoft = `rgba(${tone.rim},0.7)`
+import { useGemTone } from '../providers/GemToneProvider'
 
 type Channel = 'mobile' | 'email'
 
@@ -56,6 +54,9 @@ export default function ForgotPasswordScreen() {
   const fonts = useFontFamily()
   const router = useRouter()
   const { signIn } = useSignIn()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
+  const iconSoft = `rgba(${tone.rim},0.7)`
 
   const [channel, setChannel] = useState<Channel>('mobile')
   const [countryIndex, setCountryIndex] = useState(defaultCountryIndex)
@@ -121,7 +122,12 @@ export default function ForgotPasswordScreen() {
             size={40}
             radius={14}
           />
-          <Text style={[styles.navTitle, { fontFamily: fonts.extrabold }]}>
+          {/* `pointerEvents="none"` — the mockup's own `margin-left:-40px`
+              centering trick makes this Text's hit box (flex:1, so its
+              bounds span the full row) overlap the back IconButton to its
+              left. A later sibling paints on top, so without this the
+              title silently ate every tap meant for the button. */}
+          <Text style={[styles.navTitle, { fontFamily: fonts.extrabold }]} pointerEvents="none">
             {t.auth.forgotPassword.navTitle}
           </Text>
         </View>
@@ -237,7 +243,10 @@ export default function ForgotPasswordScreen() {
               <Text style={[styles.footerText, { fontFamily: fonts.medium }]}>
                 {t.auth.forgotPassword.rememberedIt}
               </Text>
-              <Link href="/sign-in" style={[styles.footerLink, { fontFamily: fonts.bold }]}>
+              <Link
+                href="/sign-in"
+                style={[styles.footerLink, { fontFamily: fonts.bold, color: tone.accent }]}
+              >
                 {t.auth.forgotPassword.signIn}
               </Link>
             </View>
@@ -313,6 +322,8 @@ interface ChannelRowProps {
 // version of the filled-cell/CTA gradient language elsewhere (0.28/0.16
 // alpha, not 0.9/0.76), since this is a selection highlight, not a CTA.
 function ChannelRow({ active, icon, title, hint, onPress }: ChannelRowProps) {
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
   const fonts = useFontFamily()
 
   const content = (
@@ -347,7 +358,14 @@ function ChannelRow({ active, icon, title, hint, onPress }: ChannelRowProps) {
             : { borderColor: 'rgba(255,255,255,0.24)' },
         ]}
       >
-        {active ? <View style={styles.channelRadioDot} /> : null}
+        {active ? (
+          <View
+            style={[
+              styles.channelRadioDot,
+              { backgroundColor: tone.accent, shadowColor: tone.accent },
+            ]}
+          />
+        ) : null}
       </View>
     </>
   )
@@ -502,8 +520,6 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: tone.accent,
-    shadowColor: tone.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 5,
@@ -548,7 +564,6 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 12,
-    color: tone.accent,
   },
   pickerHeader: {
     flexDirection: 'row',

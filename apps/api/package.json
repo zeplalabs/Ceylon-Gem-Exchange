@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed:filters": "tsx src/db/seed-filters.ts",
+    "db:seed:languages": "tsx src/db/seed-languages.ts",
+    "db:seed:currencies": "tsx src/db/seed-currencies.ts"
   },
   "dependencies": {
     "@clerk/backend": "3.17.0",
@@ -18,6 +21,7 @@
     "@nestjs/config": "12.0.0",
     "@nestjs/core": "12.0.1",
     "@nestjs/platform-express": "12.0.1",
+    "@nestjs/schedule": "12.0.2",
     "@nestjs/terminus": "12.0.0",
     "dotenv": "17.4.2",
     "drizzle-orm": "0.45.2",
@@ -36,6 +40,7 @@
     "@types/pg": "8.23.1",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.5",
+    "tsx": "4.23.13",
     "typescript": "5.9.3"
   }
 }

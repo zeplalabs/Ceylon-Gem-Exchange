@@ -1,7 +1,8 @@
-import { defaultGemTone, gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
+import { gemTones, neutral, type GemTone } from '@ceylon-gems/ui-tokens'
 import { Image } from 'expo-image'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useGemTone } from '../providers/GemToneProvider'
 import { GlassSurface } from './primitives/GlassSurface'
 
 interface AvatarProps {
@@ -29,12 +30,13 @@ export function Avatar({
   uri,
   initials,
   size = 48,
-  tone = defaultGemTone,
+  tone,
   badge,
   accessibilityLabel,
   style,
 }: AvatarProps) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const fonts = useFontFamily()
 
   return (

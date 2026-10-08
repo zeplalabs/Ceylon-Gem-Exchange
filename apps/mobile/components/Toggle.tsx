@@ -1,4 +1,4 @@
-import { defaultGemTone, gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
+import { gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useEffect, type ReactNode } from 'react'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
+import { useGemTone } from '../providers/GemToneProvider'
 import { GRADIENT_140 } from './primitives/gradientAngle'
 import { PressableScale } from './primitives/PressableScale'
 
@@ -24,14 +25,9 @@ interface ToggleProps {
 // color and thumb position both animate on the UI thread; the thumb is a
 // plain white circle rather than glass since it's small enough that a real
 // blur would be imperceptible and not worth a second BlurView per row.
-export function Toggle({
-  value,
-  onValueChange,
-  disabled,
-  tone = defaultGemTone,
-  accessibilityLabel,
-}: ToggleProps) {
-  const palette = gemTones[tone]
+export function Toggle({ value, onValueChange, disabled, tone, accessibilityLabel }: ToggleProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const progress = useSharedValue(value ? 1 : 0)
   const reduceMotion = useReducedMotion()
 
@@ -91,12 +87,13 @@ export function Checkbox({
   checked,
   onValueChange,
   disabled,
-  tone = defaultGemTone,
+  tone,
   accessibilityLabel,
   children,
   style,
 }: CheckboxProps) {
-  const palette = gemTones[tone]
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
 
   return (
     <PressableScale

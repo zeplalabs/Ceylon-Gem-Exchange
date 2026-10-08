@@ -10,11 +10,6 @@
 // e.g. "Jost_600SemiBold") — that's also what expo-font's config plugin
 // registers them as when embedded via raw file paths in app.json.
 //
-// Tamil is intentionally not wired up yet — only English and Sinhala are
-// supported at the moment, per product decision. Add a `ta` entry here (and
-// load its font family) when that work starts; don't add a placeholder that
-// silently falls back to English in the meantime.
-
 export const fontFamilies = {
   en: {
     regular: 'Jost_400Regular',
@@ -29,6 +24,13 @@ export const fontFamilies = {
     semibold: 'NotoSansSinhala_600SemiBold',
     bold: 'NotoSansSinhala_700Bold',
     extrabold: 'NotoSansSinhala_800ExtraBold',
+  },
+  ta: {
+    regular: 'NotoSansTamil_400Regular',
+    medium: 'NotoSansTamil_500Medium',
+    semibold: 'NotoSansTamil_600SemiBold',
+    bold: 'NotoSansTamil_700Bold',
+    extrabold: 'NotoSansTamil_800ExtraBold',
   },
 } as const
 

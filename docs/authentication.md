@@ -169,19 +169,28 @@ LocaleProvider resolves locale  --isSignedIn && isReady-->  PATCH /me { locale }
 ```
 
 - `LocaleProvider` (`apps/mobile/providers/LocaleProvider.tsx`) is the single
-  source of truth for the app's active language (`en`/`si` — Tamil is a
-  deliberately deferred product decision, not built yet). It persists an
-  explicit user choice via `expo-secure-store`, falling back to the device
+  source of truth for the app's active language (`en`/`si`/`ta`). It persists
+  an explicit user choice via `expo-secure-store`, falling back to the device
   locale (`expo-localization`, via `apps/mobile/lib/locale.ts`) only when
-  nothing's been stored yet.
-- `useSyncDeviceLocale()` (`apps/mobile/hooks/useSyncDeviceLocale.ts`,
-  despite the now slightly stale name) pushes whatever `LocaleProvider`
-  resolves to the backend whenever it changes and the user is signed in — it
-  no longer re-detects the device locale itself, so it can't clobber an
+  nothing's been stored yet, and exposes `hasStoredPreference` so callers can
+  tell a real choice apart from that fallback guess.
+- `useSyncDeviceLocale()` (`apps/mobile/hooks/useSyncDeviceLocale.ts`) pushes
+  whatever `LocaleProvider` resolves to the backend whenever it changes and
+  the user is signed in — it no longer re-detects the device locale itself,
+  so it can't clobber an
   explicit switch made in the app's language settings screen
   (`apps/mobile/app/locale-settings.tsx`).
 - `PATCH /me` upserts rather than assuming the webhook already created the
   row — it can legitimately run before the webhook has fired.
+- `GET /me` returns the persisted `locale` too. `useSyncDeviceLocale` reads
+  it on sign-in and adopts it via `setLocale` when `hasStoredPreference` is
+  still false — this is what makes a fresh install or a different device
+  come back as the language the account had already chosen, rather than
+  re-guessing from that device's own locale.
+- Account Settings' (and locale-settings') Language picker options come from
+  `GET /languages` (`apps/api/src/languages/`, DB-backed — same taxonomy-
+  table shape as `GET /filters`) rather than a hardcoded array, so the
+  list/order can change without an app release.
 
 ## Environment variables
 

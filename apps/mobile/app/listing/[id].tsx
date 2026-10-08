@@ -1,9 +1,19 @@
-import { defaultGemTone, gemTones, neutral } from '@ceylon-gems/ui-tokens'
+import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useVideoPlayer, VideoView, type VideoSource } from 'expo-video'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   GlassSurface,
@@ -20,6 +30,7 @@ import {
   GemIcon,
   HeartIcon,
   PersonIcon,
+  PlayIcon,
   ShieldCheckIcon,
   WhatsAppIcon,
 } from '../../components/icons'
@@ -28,23 +39,82 @@ import { LiveGradientBackground } from '../../components/primitives/LiveGradient
 import { useFontFamily } from '../../hooks/useFontFamily'
 import { useTranslation } from '../../hooks/useTranslation'
 import { defaultLikedIds, featuredListings, getListingDetail } from '../../lib/listings'
-
-const tone = gemTones[defaultGemTone]
-const iconSoft = `rgba(${tone.rim},0.75)`
+import { getListingMedia } from '../../lib/media'
+import { useCurrency } from '../../providers/CurrencyProvider'
+import { useGemTone } from '../../providers/GemToneProvider'
 
 type Tab = 'about' | 'specs' | 'seller'
 
+// The hero gallery's video shot, auto-played from the start every time
+// it's swiped into view (not tap-to-play like the Gallery Viewer screen's
+// main stage — this hero is meant to read as "browsing photos" at a
+// glance, so a video shot should just play rather than sit as an inert
+// poster the user has to notice and tap). Replaying from 0 on each
+// swipe-in (rather than resuming where a previous viewing left off)
+// matches a photo slide, which always shows the same frame when swiped
+// back to — the video should likewise always start the same way. Muted
+// by default since it's starting without an explicit user gesture. No
+// `nativeControls` — like a photo slide, tapping it navigates to the
+// Gallery Viewer (where the clip gets its own tap-to-play, controllable
+// viewing) rather than toggling playback in place; native controls would
+// also just intercept the tap before a wrapping Pressable ever saw it.
+function HeroVideoSlide({
+  source,
+  width,
+  height,
+  isActive,
+  onPress,
+  accessibilityLabel,
+}: {
+  source: VideoSource
+  width: number
+  height: number
+  isActive: boolean
+  onPress: () => void
+  accessibilityLabel: string
+}) {
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = true
+    p.muted = true
+  })
+
+  useEffect(() => {
+    if (isActive) {
+      player.replay()
+      player.play()
+    } else {
+      player.pause()
+    }
+  }, [isActive, player])
+
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      style={{ width, height }}
+    >
+      <VideoView
+        style={{ width, height }}
+        player={player}
+        contentFit="cover"
+        pointerEvents="none"
+      />
+    </PressableScale>
+  )
+}
+
 // Reached by tapping a ListingCard on Home (or another listing's "Similar
 // listings" card, which pushes a fresh copy of this same route). Ports
-// "Ceylon Gem Exchange Listing Detail.dc.html". No photo backend exists
-// yet (same situation as ListingCard/Home's hero — see their own
-// comments), so the gallery renders the same tinted-glass + GemIcon
-// placeholder rather than real photos; `@nandorojo/galeria`
-// (CLAUDE.md's mandated pinch-zoom/pan-to-close viewer) is deferred until
-// there's an actual photo source worth zooming into — pinch-zooming a
-// centered placeholder glyph has nothing to demonstrate. The favorite
-// toggle is local-only, like Home's own `liked` state (no shared store
-// exists yet), so liking here doesn't sync back to Home's grid.
+// "Ceylon Gem Exchange Listing Detail.dc.html". No real photo backend
+// exists yet (same situation as ListingCard/Home's hero — see their own
+// comments), so photo slides render the same tinted-glass + GemIcon
+// placeholder; the one video shot autoplays a real bundled demo clip (see
+// HeroVideoSlide above) standing in for actual seller-uploaded video.
+// `@nandorojo/galeria` (CLAUDE.md's mandated pinch-zoom/pan-to-close
+// viewer) stays deferred for photos until there's a real one worth
+// zooming into. The favorite toggle is local-only, like Home's own
+// `liked` state (no shared store exists yet), so liking here doesn't
+// sync back to Home's grid.
 export default function ListingDetailScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
@@ -52,10 +122,41 @@ export default function ListingDetailScreen() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
   const listing = getListingDetail(id)
+  const { width: windowWidth } = useWindowDimensions()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
+  const { formatPrice } = useCurrency()
+  const iconSoft = `rgba(${tone.rim},0.75)`
+  // Matches `body`'s own paddingHorizontal (22 each side) — the hero
+  // gallery isn't measured via onLayout since it's always exactly the
+  // body content width minus that fixed padding.
+  const galleryWidth = windowWidth - 44
 
   const [activeImage, setActiveImage] = useState(0)
   const [tab, setTab] = useState<Tab>('about')
   const [fav, setFav] = useState(() => defaultLikedIds.has(id))
+  const heroScrollRef = useRef<ScrollView>(null)
+
+  function goToImage(i: number) {
+    setActiveImage(i)
+    heroScrollRef.current?.scrollTo({ x: i * galleryWidth, animated: true })
+  }
+
+  function handleHeroMomentumEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    setActiveImage(Math.round(e.nativeEvent.contentOffset.x / galleryWidth))
+  }
+
+  // If there's no back-stack to pop (a dev reload landing here resets the
+  // stack with this screen as the root — the same would be true of a
+  // future deep link, e.g. a shared listing URL), Home is the sensible
+  // fallback destination instead of a silently-dead back button.
+  function goBack() {
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/')
+    }
+  }
 
   if (!listing) {
     return (
@@ -65,7 +166,7 @@ export default function ListingDetailScreen() {
             <IconButton
               icon={<ChevronLeftIcon />}
               accessibilityLabel={t.common.back}
-              onPress={() => router.back()}
+              onPress={goBack}
               size={40}
               radius={14}
             />
@@ -75,8 +176,9 @@ export default function ListingDetailScreen() {
     )
   }
 
-  const photos = Array.from({ length: listing.photoCount }, (_, i) => i)
+  const media = getListingMedia(listing)
   const similar = featuredListings.filter((item) => item.id !== listing.id).slice(0, 4)
+  const price = formatPrice(listing.priceUsd)
 
   function callSeller() {
     Linking.openURL(`tel:${listing!.sellerPhone}`).catch(() => {})
@@ -93,7 +195,7 @@ export default function ListingDetailScreen() {
           <IconButton
             icon={<ChevronLeftIcon />}
             accessibilityLabel={t.common.back}
-            onPress={() => router.back()}
+            onPress={goBack}
             size={40}
             radius={14}
           />
@@ -123,50 +225,84 @@ export default function ListingDetailScreen() {
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View
-            style={[
-              styles.gallery,
-              Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 20 },
-                  shadowOpacity: 0.6,
-                  shadowRadius: 30,
-                },
-                android: { elevation: 10 },
-              }),
-            ]}
+            style={Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 20 },
+                shadowOpacity: 0.6,
+                shadowRadius: 30,
+              },
+              android: { elevation: 10 },
+            })}
           >
-            <GlassSurface clarity={55} rim={tone.rim} radius={26} style={styles.galleryGlass}>
-              <GemIcon size={44} ink="rgba(255,255,255,0.2)" inkSoft="rgba(255,255,255,0.12)" />
-            </GlassSurface>
-            <LinearGradient
-              colors={['rgba(6,11,26,0.12)', 'rgba(6,11,26,0)', 'rgba(6,11,26,0.6)']}
-              locations={[0, 0.4, 1]}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={[`${tone.cta[0]}0.6)`, `${tone.cta[1]}0.42)`]}
-              start={GRADIENT_140.start}
-              end={GRADIENT_140.end}
-              style={[styles.priceBadge, { borderColor: `rgba(${tone.rim},0.45)` }]}
-            >
-              <Text style={[styles.priceBadgeLabel, { fontFamily: fonts.extrabold }]}>
-                {listing.price}
-              </Text>
-            </LinearGradient>
-            <View style={styles.dotsRow} pointerEvents="none">
-              {photos.map((i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    i === activeImage
-                      ? { width: 20, backgroundColor: tone.accent, shadowColor: tone.accent }
-                      : { width: 5, backgroundColor: 'rgba(255,255,255,0.4)' },
-                  ]}
-                />
-              ))}
+            {/* overflow:'hidden' lives on this inner view (not the shadow
+                wrapper above) — overflow:'hidden' and a shadow on the same
+                view clip the shadow away in RN, so the rounded-corner clip
+                and the drop shadow need separate layers. */}
+            <View style={styles.gallery}>
+              <ScrollView
+                ref={heroScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleHeroMomentumEnd}
+              >
+                {media.map((shot, i) =>
+                  shot.kind === 'video' && shot.video ? (
+                    <HeroVideoSlide
+                      key={i}
+                      source={shot.video}
+                      width={galleryWidth}
+                      height={280}
+                      isActive={i === activeImage}
+                      onPress={() => router.push(`/gallery/${listing.id}?index=${i}`)}
+                      accessibilityLabel={`${listing.name} video ${i + 1}`}
+                    />
+                  ) : (
+                    <PressableScale
+                      key={i}
+                      onPress={() => router.push(`/gallery/${listing.id}?index=${i}`)}
+                      accessibilityLabel={`${listing.name} photo ${i + 1}`}
+                      style={{ width: galleryWidth, height: 280 }}
+                    >
+                      {/* radius 0 — the slide fills its own rectangle; the
+                          rounded shape comes from the container's overflow
+                          clip above, not from each individual slide. */}
+                      <GlassSurface
+                        clarity={55}
+                        rim={tone.rim}
+                        radius={0}
+                        style={styles.galleryGlass}
+                      >
+                        <GemIcon
+                          size={44}
+                          ink="rgba(255,255,255,0.2)"
+                          inkSoft="rgba(255,255,255,0.12)"
+                        />
+                      </GlassSurface>
+                    </PressableScale>
+                  ),
+                )}
+              </ScrollView>
+              <LinearGradient
+                colors={['rgba(6,11,26,0.12)', 'rgba(6,11,26,0)', 'rgba(6,11,26,0.6)']}
+                locations={[0, 0.4, 1]}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+              <View style={styles.dotsRow} pointerEvents="none">
+                {media.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      i === activeImage
+                        ? { width: 20, backgroundColor: tone.accent, shadowColor: tone.accent }
+                        : { width: 5, backgroundColor: 'rgba(255,255,255,0.4)' },
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
           </View>
 
@@ -176,7 +312,7 @@ export default function ListingDetailScreen() {
             style={styles.thumbRow}
             contentContainerStyle={styles.thumbRowContent}
           >
-            {photos.map((i) => {
+            {media.map((shot, i) => {
               const active = i === activeImage
               const thumb = (
                 <GlassSurface
@@ -193,15 +329,31 @@ export default function ListingDetailScreen() {
                     ink="rgba(255,255,255,0.22)"
                     inkSoft="rgba(255,255,255,0.12)"
                   />
+                  {shot.kind === 'video' ? (
+                    <View style={styles.thumbVideoBadge}>
+                      <PlayIcon size={8} />
+                    </View>
+                  ) : null}
                 </GlassSurface>
               )
               return (
                 <PressableScale
                   key={i}
-                  onPress={() => setActiveImage(i)}
+                  onPress={() => goToImage(i)}
                   accessibilityLabel={`View ${i + 1}`}
                 >
-                  {active ? <View style={styles.thumbActiveRing}>{thumb}</View> : thumb}
+                  {active ? (
+                    <View
+                      style={[
+                        styles.thumbActiveRing,
+                        { backgroundColor: `rgba(${tone.halo},0.18)` },
+                      ]}
+                    >
+                      {thumb}
+                    </View>
+                  ) : (
+                    thumb
+                  )}
                 </PressableScale>
               )
             })}
@@ -226,7 +378,7 @@ export default function ListingDetailScreen() {
                 {t.listingDetail.priceLabel}
               </Text>
               <Text style={[styles.price, { fontFamily: fonts.extrabold, color: tone.accent }]}>
-                {listing.price}
+                {price}
               </Text>
             </View>
           </View>
@@ -299,48 +451,60 @@ export default function ListingDetailScreen() {
                     {listing.sellerMeta}
                   </Text>
                 </View>
-                <LinearGradient
-                  colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
-                  start={GRADIENT_140.start}
-                  end={GRADIENT_140.end}
-                  style={[styles.sellerChatBtn, { borderColor: `rgba(${tone.rim},0.42)` }]}
+                <PressableScale
+                  onPress={() => router.push(`/chat/${listing.id}`)}
+                  accessibilityLabel={t.listingDetail.chat}
                 >
-                  <ChatIcon size={16} />
-                </LinearGradient>
+                  <LinearGradient
+                    colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
+                    start={GRADIENT_140.start}
+                    end={GRADIENT_140.end}
+                    style={[styles.sellerChatBtn, { borderColor: `rgba(${tone.rim},0.42)` }]}
+                  >
+                    <ChatIcon size={16} />
+                  </LinearGradient>
+                </PressableScale>
               </View>
             ) : null}
           </GlassSurface>
 
-          <View style={styles.certRow}>
-            <View
-              style={[
-                styles.certIconTile,
-                {
-                  backgroundColor: `rgba(${tone.rim},0.14)`,
-                  borderColor: `rgba(${tone.rim},0.28)`,
-                },
-              ]}
-            >
-              <ShieldCheckIcon size={17} color={iconSoft} strokeWidth={1.5} />
-            </View>
-            <View style={styles.certTextCol}>
-              <Text style={[styles.certNumber, { fontFamily: fonts.bold }]}>
-                {listing.certNumber}
-              </Text>
-              <Text style={[styles.certIssued, { fontFamily: fonts.semibold }]}>
-                {listing.certIssued}
-              </Text>
-            </View>
-            <ChevronRightIcon />
-          </View>
+          <PressableScale
+            onPress={() => router.push(`/certificate/${listing.id}`)}
+            accessibilityLabel={`View ${listing.certNumber} certificate`}
+          >
+            <GlassSurface clarity={55} radius={20} style={styles.certRow}>
+              <View
+                style={[
+                  styles.certIconTile,
+                  {
+                    backgroundColor: `rgba(${tone.rim},0.14)`,
+                    borderColor: `rgba(${tone.rim},0.28)`,
+                  },
+                ]}
+              >
+                <ShieldCheckIcon size={17} color={iconSoft} strokeWidth={1.5} />
+              </View>
+              <View style={styles.certTextCol}>
+                <Text style={[styles.certNumber, { fontFamily: fonts.bold }]}>
+                  {listing.certNumber}
+                </Text>
+                <Text style={[styles.certIssued, { fontFamily: fonts.semibold }]}>
+                  {listing.certIssued}
+                </Text>
+              </View>
+              <ChevronRightIcon />
+            </GlassSurface>
+          </PressableScale>
 
           <View style={styles.similarHeader}>
             <Text style={[styles.similarTitle, { fontFamily: fonts.extrabold }]}>
               {t.listingDetail.similarListings}
             </Text>
-            <Text style={[styles.similarViewAll, { fontFamily: fonts.bold, color: tone.accent }]}>
-              {t.listingDetail.viewAll}
-            </Text>
+            <PressableScale onPress={() => router.push(`/similar/${listing.id}`)} hitSlop={8}>
+              <Text style={[styles.similarViewAll, { fontFamily: fonts.bold, color: tone.accent }]}>
+                {t.listingDetail.viewAll}
+              </Text>
+            </PressableScale>
           </View>
 
           <View style={styles.similarGrid}>
@@ -350,7 +514,7 @@ export default function ListingDetailScreen() {
                   <ListingCard
                     name={item.name}
                     spec={item.spec}
-                    price={item.price}
+                    priceUsd={item.priceUsd}
                     badge={item.badge}
                     onPress={() => router.push(`/listing/${item.id}`)}
                   />
@@ -363,7 +527,7 @@ export default function ListingDetailScreen() {
                   <ListingCard
                     name={item.name}
                     spec={item.spec}
-                    price={item.price}
+                    priceUsd={item.priceUsd}
                     badge={item.badge}
                     onPress={() => router.push(`/listing/${item.id}`)}
                   />
@@ -401,7 +565,11 @@ export default function ListingDetailScreen() {
                 {t.listingDetail.call}
               </Text>
             </PressableScale>
-            <PressableScale style={styles.actionButton} accessibilityLabel={t.listingDetail.chat}>
+            <PressableScale
+              onPress={() => router.push(`/chat/${listing.id}`)}
+              style={styles.actionButton}
+              accessibilityLabel={t.listingDetail.chat}
+            >
               <ChatIcon size={17} />
               <Text style={[styles.actionLabel, { fontFamily: fonts.extrabold }]}>
                 {t.listingDetail.chat}
@@ -470,25 +638,12 @@ const styles = StyleSheet.create({
   gallery: {
     height: 280,
     borderRadius: 26,
+    overflow: 'hidden',
   },
   galleryGlass: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  priceBadge: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 13,
-    borderWidth: 1,
-  },
-  priceBadgeLabel: {
-    fontSize: 10,
-    letterSpacing: 0.3,
-    color: neutral.white,
   },
   dotsRow: {
     position: 'absolute',
@@ -510,7 +665,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexGrow: 0,
   },
+  // flexGrow: 1 lets the content container expand to the ScrollView's full
+  // width when the thumbnails don't fill it (<=4 photos) so justifyContent
+  // can center them; once there are enough thumbnails to overflow that
+  // width on their own, flexGrow has nothing left to grow into and this
+  // naturally falls back to normal left-aligned horizontal scrolling — no
+  // photo-count branching needed.
   thumbRowContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     gap: 10,
   },
   thumb: {
@@ -522,10 +685,22 @@ const styles = StyleSheet.create({
   thumbInactive: {
     opacity: 0.75,
   },
+  thumbVideoBadge: {
+    position: 'absolute',
+    right: 5,
+    bottom: 5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(4,8,18,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   thumbActiveRing: {
     padding: 3,
     borderRadius: 21,
-    backgroundColor: `rgba(${tone.halo},0.18)`,
   },
   titleRow: {
     flexDirection: 'row',
@@ -665,10 +840,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 12,
     padding: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
   },
   certIconTile: {
     width: 38,

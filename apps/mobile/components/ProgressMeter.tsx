@@ -1,6 +1,7 @@
-import { defaultGemTone, gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
+import { gemTones, type GemTone } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
+import { useGemTone } from '../providers/GemToneProvider'
 
 interface ProgressBarProps {
   /** 0 to 1. */
@@ -10,8 +11,9 @@ interface ProgressBarProps {
 }
 
 // Linear fill bar (profile-completion meter, upload progress on Post Ad).
-export function ProgressBar({ progress, tone = defaultGemTone, style }: ProgressBarProps) {
-  const palette = gemTones[tone]
+export function ProgressBar({ progress, tone, style }: ProgressBarProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
   const clamped = Math.max(0, Math.min(1, progress))
 
   return (
@@ -40,13 +42,9 @@ interface StepMeterProps {
 
 // Discrete step dots (Signup's multi-step flow, Post Ad's wizard). Completed
 // and current steps get the tone accent; future steps stay dim.
-export function StepMeter({
-  totalSteps,
-  currentStep,
-  tone = defaultGemTone,
-  style,
-}: StepMeterProps) {
-  const palette = gemTones[tone]
+export function StepMeter({ totalSteps, currentStep, tone, style }: StepMeterProps) {
+  const { gemTone } = useGemTone()
+  const palette = gemTones[tone ?? gemTone]
 
   return (
     <View

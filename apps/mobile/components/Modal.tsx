@@ -1,11 +1,4 @@
-import {
-  defaultGemTone,
-  fontSize,
-  neutral,
-  radii,
-  spacing,
-  type GemTone,
-} from '@ceylon-gems/ui-tokens'
+import { fontSize, neutral, radii, spacing, type GemTone } from '@ceylon-gems/ui-tokens'
 import { type ReactNode } from 'react'
 import {
   Modal as RNModal,
@@ -89,7 +82,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   destructive,
-  tone = defaultGemTone,
+  tone,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {

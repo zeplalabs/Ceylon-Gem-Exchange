@@ -1,12 +1,5 @@
 import { Show, useUser } from '@clerk/expo'
-import {
-  defaultGemTone,
-  fontFamilies,
-  fontSize,
-  gemTones,
-  neutral,
-  spacing,
-} from '@ceylon-gems/ui-tokens'
+import { fontFamilies, fontSize, gemTones, neutral, spacing } from '@ceylon-gems/ui-tokens'
 import { Link } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -30,9 +23,8 @@ import {
   Toggle,
 } from '../components'
 import { useTranslation } from '../hooks/useTranslation'
+import { useGemTone } from '../providers/GemToneProvider'
 import { useLocale } from '../providers/LocaleProvider'
-
-const tone = gemTones[defaultGemTone]
 
 // Kitchen-sink screen exercising the full component kit end to end (real
 // Metro bundling + on-device render) — kept as a standalone dev route
@@ -49,9 +41,11 @@ export default function KitchenSink() {
   const [confirmVisible, setConfirmVisible] = useState(false)
   const { locale, setLocale } = useLocale()
   const t = useTranslation()
+  const { gemTone } = useGemTone()
+  const tone = gemTones[gemTone]
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: tone.screen[1] }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Ceylon Gem Exchange</Text>
@@ -184,7 +178,6 @@ function SignedInGreeting() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tone.screen[1],
   },
   content: {
     padding: spacing.lg,
