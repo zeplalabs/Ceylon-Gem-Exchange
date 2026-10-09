@@ -15,6 +15,7 @@
       "package": "com.zeplalabs.ceylongems"
     },
     "plugins": [
+      "./plugins/withAndroidLargeHeap.js",
       "expo-router",
       "expo-status-bar",
       "expo-splash-screen",
