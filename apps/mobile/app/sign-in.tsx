@@ -80,6 +80,7 @@ export default function SignInScreen() {
       const { error } = await signIn.password({ identifier: trimmed, password })
 
       if (error) {
+        console.error('[SignIn] signIn.password() returned an error', JSON.stringify(error))
         // Clerk's own code for "no user matches this identifier" — a
         // distinct case from a wrong password or a network error (both of
         // which stay here as an inline form error), so it gets its own
@@ -99,8 +100,10 @@ export default function SignInScreen() {
         return
       }
 
+      console.error('[SignIn] signIn.status not complete after no error', signIn.status)
       setFormError(t.common.genericError)
-    } catch {
+    } catch (err) {
+      console.error('[SignIn] handleSubmit failed', err)
       setFormError(t.common.genericError)
     } finally {
       setSubmitting(false)
