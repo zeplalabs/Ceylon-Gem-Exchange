@@ -38,12 +38,12 @@ These apply on **both macOS and Windows** unless noted otherwise.
 
 Mobile-specific, only needed for the platform(s) you intend to build for:
 
-| Tool                                                                                                              | Platform                       | Notes                                                                                             |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Xcode (latest stable, via the App Store) + Command Line Tools                                                     | iOS — **macOS only**           | iOS builds cannot be done on Windows at all; Xcode doesn't exist there                            |
-| [CocoaPods](https://cocoapods.org/)                                                                               | iOS — macOS only               | `sudo gem install cocoapods`, or `brew install cocoapods`                                         |
-| [Android Studio](https://developer.android.com/studio) (Android SDK + Platform Tools + at least one emulator/AVD) | Android — **macOS or Windows** |                                                                                                   |
-| JDK 17                                                                                                            | Android — macOS or Windows     | Android Studio can install this for you, or `brew install openjdk@17` / use the Windows installer |
+| Tool                                                          | Platform                       | Notes                                                                                                                                                                             |
+| ------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Xcode (latest stable, via the App Store) + Command Line Tools | iOS — **macOS only**           | iOS builds cannot be done on Windows at all; Xcode doesn't exist there                                                                                                            |
+| [CocoaPods](https://cocoapods.org/)                           | iOS — macOS only               | `sudo gem install cocoapods`, or `brew install cocoapods`                                                                                                                         |
+| Android SDK + an emulator                                     | Android — **macOS or Windows** | The full Android Studio GUI works, but isn't required — see "Setting up the Android emulator headlessly" below for the faster, scriptable path this project's setup actually used |
+| JDK 17                                                        | Android — macOS or Windows     | `brew install openjdk@17` (macOS) or the Windows installer / `winget install EclipseAdoptium.Temurin.17.JDK`                                                                      |
 
 This repo left Expo Go for good (see `CLAUDE.md`'s "Current sequencing") —
 `react-native-skia` is a native module Expo Go can't load, so you always
@@ -177,17 +177,89 @@ Once the dev client is installed on the simulator, you can skip the full
 rebuild for everyday JS-only changes and just run `npx expo start` for
 fast-refresh.
 
-### Android (macOS or Windows)
+### Setting up the Android emulator headlessly (one-time)
 
-Make sure an emulator is running (or a device is connected with USB
-debugging on), then:
+Skips the full Android Studio GUI — same end result (an SDK + a working
+emulator), just scriptable. This is the exact path this project's own setup
+used.
+
+**macOS:**
+
+```bash
+brew install --cask android-commandlinetools
+```
+
+Add to `~/.zshrc` (or `~/.bashrc`), then open a new terminal (or
+`source ~/.zshrc`) so it takes effect:
+
+```bash
+export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"  # Intel Mac: /usr/local/share/...
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator"
+```
+
+```bash
+yes | sdkmanager --licenses
+sdkmanager "platform-tools" "emulator" "platforms;android-34" "build-tools;34.0.0" \
+  "system-images;android-34;google_apis;arm64-v8a"   # Intel Mac: arm64-v8a → x86_64
+echo no | avdmanager create avd -n Pixel_7_API_34 -k "system-images;android-34;google_apis;arm64-v8a"
+```
+
+(Don't pass `avdmanager -d <device>` — a specific device profile triggers a
+`devices.xml` lookup bug in current cmdline-tools that produces a broken
+AVD config. Omitting it entirely, as above, works fine; the emulator picks
+a sensible generic phone profile.)
+
+**Windows (PowerShell):**
+
+1. Download the **"Command line tools only"** zip for Windows from
+   [developer.android.com/studio#command-tools](https://developer.android.com/studio#command-tools)
+2. Extract it so the path ends up as `C:\Android\cmdline-tools\latest\...`
+   — the zip extracts to a plain `cmdline-tools` folder, which you need to
+   rename/nest into `latest` yourself (`sdkmanager` won't find itself
+   otherwise — a common gotcha)
+3. Set environment variables (System Properties → Environment Variables, or
+   PowerShell as Administrator):
+   ```powershell
+   setx ANDROID_HOME "C:\Android"
+   setx PATH "$($env:PATH);C:\Android\cmdline-tools\latest\bin;C:\Android\platform-tools;C:\Android\emulator"
+   ```
+4. Open a new terminal, then the Windows equivalent of the macOS commands
+   above (same tool names — `sdkmanager`/`avdmanager` work identically once
+   on `PATH`, just using the `x86_64` system image instead of `arm64-v8a`
+   since Windows dev machines are x86):
+   ```powershell
+   sdkmanager --licenses
+   sdkmanager "platform-tools" "emulator" "platforms;android-34" "build-tools;34.0.0" "system-images;android-34;google_apis;x86_64"
+   avdmanager create avd -n Pixel_7_API_34 -k "system-images;android-34;google_apis;x86_64"
+   ```
+5. **Windows-only extra requirement:** hardware-accelerated emulation needs
+   the **Windows Hypervisor Platform** feature turned on — "Turn Windows
+   features on or off" → check it → restart. Without this the emulator
+   either refuses to start or runs unusably slowly. (macOS has no
+   equivalent step; Apple Silicon/Intel Macs virtualize natively.)
+
+Device/API-level names above (`Pixel_7_API_34`, `android-34`) are just what
+this setup used — any reasonably recent API level and device profile works
+the same way.
+
+### Android (run the app)
+
+```bash
+emulator -avd Pixel_7_API_34
+```
+
+opens the emulator window (do this every time, not just once — the SDK
+setup above only needs to happen once). With it running (or a real device
+connected with USB debugging on):
 
 ```bash
 npx expo run:android
 ```
 
 Same as iOS: once the dev client is installed, `npx expo start` gives you
-fast-refresh without a full rebuild.
+fast-refresh without a full rebuild — press `a` to launch/reload on the
+emulator.
 
 ## Verifying everything works
 
