@@ -5,3 +5,9 @@ build
 .expo
 .turbo
 pnpm-lock.yaml
+
+# Native projects (Xcode/Gradle/CocoaPods output) — not Prettier's formats,
+# and committed as-is from `expo prebuild` (see .gitignore's note on why
+# these are tracked at all).
+apps/mobile/ios
+apps/mobile/android

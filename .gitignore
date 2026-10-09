@@ -10,10 +10,6 @@ build/
 .turbo/
 *.tsbuildinfo
 
-# Expo prebuild output — managed workflow, regenerated via EAS Build
-apps/mobile/ios/
-apps/mobile/android/
-
 # env
 .env
 .env.local
