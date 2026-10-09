@@ -1,5 +1,6 @@
 import { isSupportedLocale, type Locale } from '@ceylon-gems/i18n'
 import { useEffect, useState } from 'react'
+import { API_URL } from '../lib/apiUrl'
 
 export interface LanguageOption {
   code: Locale
@@ -30,7 +31,7 @@ export function useLanguages() {
   useEffect(() => {
     let cancelled = false
 
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/languages`)
+    fetch(`${API_URL}/languages`)
       .then((res) => res.json())
       .then((data: { code: string; label: string }[]) => {
         if (cancelled) return

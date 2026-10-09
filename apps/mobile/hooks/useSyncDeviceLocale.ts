@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/expo'
 import { isSupportedLocale } from '@ceylon-gems/i18n'
 import { useEffect } from 'react'
+import { API_URL } from '../lib/apiUrl'
 import { useLocale } from '../providers/LocaleProvider'
 
 // Keeps the app's active locale and the backend's `users.locale` in sync,
@@ -30,7 +31,7 @@ export function useSyncDeviceLocale() {
       const token = await getToken()
       if (!token || cancelled) return
 
-      const remoteLocale = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/me`, {
+      const remoteLocale = await fetch(`${API_URL}/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -58,7 +59,7 @@ export function useSyncDeviceLocale() {
       const token = await getToken()
       if (!token || cancelled) return
 
-      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/me`, {
+      await fetch(`${API_URL}/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

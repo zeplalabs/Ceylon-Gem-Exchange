@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
+import { API_URL } from '../lib/apiUrl'
 import { FALLBACK_CURRENCY, formatAmount, type CurrencyOption } from '../lib/currency'
 import { getItem, setItem } from '../lib/storage'
 
@@ -52,7 +53,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
     const fetchRates = () => {
       lastFetchedAt.current = Date.now()
-      fetch(`${process.env.EXPO_PUBLIC_API_URL}/currencies`)
+      fetch(`${API_URL}/currencies`)
         .then((res) => res.json())
         .then((data: CurrencyOption[]) => {
           if (!cancelled) setCurrencies(data.length > 0 ? data : [FALLBACK_CURRENCY])

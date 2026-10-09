@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_URL } from '../lib/apiUrl'
 
 export type FilterGroups = Record<string, string[]>
 
@@ -15,7 +16,7 @@ export function useFilters() {
   useEffect(() => {
     let cancelled = false
 
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/filters`)
+    fetch(`${API_URL}/filters`)
       .then((res) => res.json())
       .then((data: FilterGroups) => {
         if (!cancelled) setGroups(data)
