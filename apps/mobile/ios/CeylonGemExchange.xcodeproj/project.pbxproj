@@ -7,49 +7,59 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		05AF2E8AF44743D0B2563337 /* NotoSansSinhala_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0F7B87CA36854221BE97F3C1 /* NotoSansSinhala_400Regular.ttf */; };
-		08C37CDD0B9D44449DE6EDA0 /* Jost_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CDD0D10E58FC4776B218AA1F /* Jost_500Medium.ttf */; };
+		0558620918F843D6A40A43A5 /* Jost_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7FC483A5D9CD4C66AD147E18 /* Jost_700Bold.ttf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1D22ECBB2824121032DA9013 /* libPods-CeylonGemExchange.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FB21E598A24E72293F284C61 /* libPods-CeylonGemExchange.a */; };
-		23EA34B8EFD1496FB4EE8B2C /* NotoSansSinhala_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 78DA00C1D2A14514A3FB6C86 /* NotoSansSinhala_600SemiBold.ttf */; };
-		28F0F992D9C64D8DAAC2E808 /* Jost_800ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2FC9DA1CC06E4CAAAA02813C /* Jost_800ExtraBold.ttf */; };
+		1BDCAFC1FF5940698C77184B /* NotoSansSinhala_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 95D58DF5599E45A49759CCE9 /* NotoSansSinhala_400Regular.ttf */; };
+		1D7392F9488C4657A01578E2 /* Jost_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0CB706D67EFD4559A70384C9 /* Jost_600SemiBold.ttf */; };
+		327766ACE4BB40AB99BD7F7D /* NotoSansSinhala_800ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E2CBCE26B8A147A7B326CECC /* NotoSansSinhala_800ExtraBold.ttf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		549F7E8BDCB450408D3559DF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F30D9D3B3495EEB60E244E5B /* PrivacyInfo.xcprivacy */; };
-		8599B3456D7246C9AA60D10D /* Jost_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 977560D1D3A849A28DB83589 /* Jost_700Bold.ttf */; };
-		99A3ED24536FE9B381AD26F1 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B26A5503FCD1E9004FEEC3 /* ExpoModulesProvider.swift */; };
-		9C93669470804E97A8C31250 /* NotoSansSinhala_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BB559169F54D4FCEA0E41A5B /* NotoSansSinhala_500Medium.ttf */; };
+		45FCEB2EC33B4BEAB7BE4CF7 /* NotoSansTamil_800ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 65FB81392E6143E1B0C95EB4 /* NotoSansTamil_800ExtraBold.ttf */; };
+		5DF7605568E44AE0B95FEFF3 /* Jost_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18982308CDAD4F01B8242AFA /* Jost_500Medium.ttf */; };
+		5E7ADF0AB4D94B1A825937AC /* Jost_800ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AF386C869A82461F83A58282 /* Jost_800ExtraBold.ttf */; };
+		7F469D52D6AA44A49ABC4F4C /* NotoSansSinhala_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9FCB91DBB452423D899F5D64 /* NotoSansSinhala_500Medium.ttf */; };
+		98DCF6A8B5324DE49C371694 /* NotoSansSinhala_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 058CF2BA618949A4908581A0 /* NotoSansSinhala_700Bold.ttf */; };
+		B26B492582B84A90B94E175D /* NotoSansSinhala_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F77416867AB84FB591DD912B /* NotoSansSinhala_600SemiBold.ttf */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D1047695D5854E7B90A982A1 /* NotoSansSinhala_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A394A65275D541D68562C6A9 /* NotoSansSinhala_700Bold.ttf */; };
-		E23C95995A624A13BD61AAF0 /* NotoSansSinhala_800ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3DB94B07A3A6499DA30709F7 /* NotoSansSinhala_800ExtraBold.ttf */; };
-		EF2D6ED1D54A4AE1BD124510 /* Jost_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CE049BAC67AE4403B9ABB726 /* Jost_400Regular.ttf */; };
+		D87932EA64774BF19E575881 /* NotoSansTamil_500Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 00C42EB151134B9595A928AA /* NotoSansTamil_500Medium.ttf */; };
+		DC03603C735AAF2E4A6DE99F /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18329D9A64C3F94690980C80 /* ExpoModulesProvider.swift */; };
+		E4642ED9459546A9A57800E6 /* Jost_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D5A522E5CE045DB9936A180 /* Jost_400Regular.ttf */; };
+		EE4320BAE6164552B43F9170 /* NotoSansTamil_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5305847785A74EB3BE4EF2BF /* NotoSansTamil_400Regular.ttf */; };
+		F0FFC90E04A856C6C661BDC5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F8854DC1DF528C0DB596AD80 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		FD352274BA1C4DC5B5CF0367 /* Jost_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2C06FF78814B42308A60AEE5 /* Jost_600SemiBold.ttf */; };
+		F5F921B7703F75DE6EE92D6F /* libPods-CeylonGemExchange.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A0EA75CF53EEF0359EFEDF06 /* libPods-CeylonGemExchange.a */; };
+		F96BB84544F741C6BA97C69C /* NotoSansTamil_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9C6B5BEB7EB947B98AAD9E88 /* NotoSansTamil_700Bold.ttf */; };
+		FF98D75B9334471FB2C7D06F /* NotoSansTamil_600SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9F6030C2D564435DA587D46C /* NotoSansTamil_600SemiBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0F7B87CA36854221BE97F3C1 /* NotoSansSinhala_400Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_400Regular.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/400Regular/NotoSansSinhala_400Regular.ttf"; sourceTree = "<group>"; };
+		00C42EB151134B9595A928AA /* NotoSansTamil_500Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansTamil_500Medium.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-tamil/500Medium/NotoSansTamil_500Medium.ttf"; sourceTree = "<group>"; };
+		058CF2BA618949A4908581A0 /* NotoSansSinhala_700Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_700Bold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/700Bold/NotoSansSinhala_700Bold.ttf"; sourceTree = "<group>"; };
+		0CB706D67EFD4559A70384C9 /* Jost_600SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_600SemiBold.ttf; path = "../node_modules/@expo-google-fonts/jost/600SemiBold/Jost_600SemiBold.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* CeylonGemExchange.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CeylonGemExchange.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = CeylonGemExchange/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = CeylonGemExchange/Info.plist; sourceTree = "<group>"; };
-		2C06FF78814B42308A60AEE5 /* Jost_600SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_600SemiBold.ttf; path = "../node_modules/@expo-google-fonts/jost/600SemiBold/Jost_600SemiBold.ttf"; sourceTree = "<group>"; };
-		2FC9DA1CC06E4CAAAA02813C /* Jost_800ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_800ExtraBold.ttf; path = "../node_modules/@expo-google-fonts/jost/800ExtraBold/Jost_800ExtraBold.ttf"; sourceTree = "<group>"; };
-		37C8C305BD823A08921CD22F /* Pods-CeylonGemExchange.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CeylonGemExchange.release.xcconfig"; path = "Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange.release.xcconfig"; sourceTree = "<group>"; };
-		3DB94B07A3A6499DA30709F7 /* NotoSansSinhala_800ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_800ExtraBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/800ExtraBold/NotoSansSinhala_800ExtraBold.ttf"; sourceTree = "<group>"; };
-		6A4912584F3E040AAE9BDC47 /* Pods-CeylonGemExchange.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CeylonGemExchange.debug.xcconfig"; path = "Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange.debug.xcconfig"; sourceTree = "<group>"; };
-		78DA00C1D2A14514A3FB6C86 /* NotoSansSinhala_600SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_600SemiBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/600SemiBold/NotoSansSinhala_600SemiBold.ttf"; sourceTree = "<group>"; };
-		977560D1D3A849A28DB83589 /* Jost_700Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_700Bold.ttf; path = "../node_modules/@expo-google-fonts/jost/700Bold/Jost_700Bold.ttf"; sourceTree = "<group>"; };
-		A394A65275D541D68562C6A9 /* NotoSansSinhala_700Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_700Bold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/700Bold/NotoSansSinhala_700Bold.ttf"; sourceTree = "<group>"; };
+		18329D9A64C3F94690980C80 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-CeylonGemExchange/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		18982308CDAD4F01B8242AFA /* Jost_500Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_500Medium.ttf; path = "../node_modules/@expo-google-fonts/jost/500Medium/Jost_500Medium.ttf"; sourceTree = "<group>"; };
+		4D5A522E5CE045DB9936A180 /* Jost_400Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_400Regular.ttf; path = "../node_modules/@expo-google-fonts/jost/400Regular/Jost_400Regular.ttf"; sourceTree = "<group>"; };
+		5305847785A74EB3BE4EF2BF /* NotoSansTamil_400Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansTamil_400Regular.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-tamil/400Regular/NotoSansTamil_400Regular.ttf"; sourceTree = "<group>"; };
+		65FB81392E6143E1B0C95EB4 /* NotoSansTamil_800ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansTamil_800ExtraBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-tamil/800ExtraBold/NotoSansTamil_800ExtraBold.ttf"; sourceTree = "<group>"; };
+		7FC483A5D9CD4C66AD147E18 /* Jost_700Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_700Bold.ttf; path = "../node_modules/@expo-google-fonts/jost/700Bold/Jost_700Bold.ttf"; sourceTree = "<group>"; };
+		8BC80562F60DF200B8E85E0A /* Pods-CeylonGemExchange.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CeylonGemExchange.debug.xcconfig"; path = "Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange.debug.xcconfig"; sourceTree = "<group>"; };
+		95D58DF5599E45A49759CCE9 /* NotoSansSinhala_400Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_400Regular.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/400Regular/NotoSansSinhala_400Regular.ttf"; sourceTree = "<group>"; };
+		9C6B5BEB7EB947B98AAD9E88 /* NotoSansTamil_700Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansTamil_700Bold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-tamil/700Bold/NotoSansTamil_700Bold.ttf"; sourceTree = "<group>"; };
+		9F6030C2D564435DA587D46C /* NotoSansTamil_600SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansTamil_600SemiBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-tamil/600SemiBold/NotoSansTamil_600SemiBold.ttf"; sourceTree = "<group>"; };
+		9FCB91DBB452423D899F5D64 /* NotoSansSinhala_500Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_500Medium.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/500Medium/NotoSansSinhala_500Medium.ttf"; sourceTree = "<group>"; };
+		A0EA75CF53EEF0359EFEDF06 /* libPods-CeylonGemExchange.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CeylonGemExchange.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = CeylonGemExchange/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B9B26A5503FCD1E9004FEEC3 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-CeylonGemExchange/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		AF386C869A82461F83A58282 /* Jost_800ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_800ExtraBold.ttf; path = "../node_modules/@expo-google-fonts/jost/800ExtraBold/Jost_800ExtraBold.ttf"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BB559169F54D4FCEA0E41A5B /* NotoSansSinhala_500Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_500Medium.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/500Medium/NotoSansSinhala_500Medium.ttf"; sourceTree = "<group>"; };
-		CDD0D10E58FC4776B218AA1F /* Jost_500Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_500Medium.ttf; path = "../node_modules/@expo-google-fonts/jost/500Medium/Jost_500Medium.ttf"; sourceTree = "<group>"; };
-		CE049BAC67AE4403B9ABB726 /* Jost_400Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Jost_400Regular.ttf; path = "../node_modules/@expo-google-fonts/jost/400Regular/Jost_400Regular.ttf"; sourceTree = "<group>"; };
+		DCA54A6C377A070EF8C256DE /* Pods-CeylonGemExchange.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CeylonGemExchange.release.xcconfig"; path = "Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange.release.xcconfig"; sourceTree = "<group>"; };
+		E2CBCE26B8A147A7B326CECC /* NotoSansSinhala_800ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_800ExtraBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/800ExtraBold/NotoSansSinhala_800ExtraBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = CeylonGemExchange/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* CeylonGemExchange-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "CeylonGemExchange-Bridging-Header.h"; path = "CeylonGemExchange/CeylonGemExchange-Bridging-Header.h"; sourceTree = "<group>"; };
-		F30D9D3B3495EEB60E244E5B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = CeylonGemExchange/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		FB21E598A24E72293F284C61 /* libPods-CeylonGemExchange.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CeylonGemExchange.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F77416867AB84FB591DD912B /* NotoSansSinhala_600SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = NotoSansSinhala_600SemiBold.ttf; path = "../node_modules/@expo-google-fonts/noto-sans-sinhala/600SemiBold/NotoSansSinhala_600SemiBold.ttf"; sourceTree = "<group>"; };
+		F8854DC1DF528C0DB596AD80 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = CeylonGemExchange/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,13 +67,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1D22ECBB2824121032DA9013 /* libPods-CeylonGemExchange.a in Frameworks */,
+				F5F921B7703F75DE6EE92D6F /* libPods-CeylonGemExchange.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0E3C584620B9BB097724C9F3 /* CeylonGemExchange */ = {
+			isa = PBXGroup;
+			children = (
+				18329D9A64C3F94690980C80 /* ExpoModulesProvider.swift */,
+			);
+			name = CeylonGemExchange;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* CeylonGemExchange */ = {
 			isa = PBXGroup;
 			children = (
@@ -73,7 +91,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				F30D9D3B3495EEB60E244E5B /* PrivacyInfo.xcprivacy */,
+				F8854DC1DF528C0DB596AD80 /* PrivacyInfo.xcprivacy */,
 			);
 			name = CeylonGemExchange;
 			sourceTree = "<group>";
@@ -82,27 +100,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				FB21E598A24E72293F284C61 /* libPods-CeylonGemExchange.a */,
+				A0EA75CF53EEF0359EFEDF06 /* libPods-CeylonGemExchange.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		3AF72AA5ED097CC65C0AD45B /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				6A4912584F3E040AAE9BDC47 /* Pods-CeylonGemExchange.debug.xcconfig */,
-				37C8C305BD823A08921CD22F /* Pods-CeylonGemExchange.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		4C18DFB23C5BB7AAD191C26A /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				B09E27BD404B66BE933E75CA /* CeylonGemExchange */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -119,9 +119,9 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				9938253A597747A3A853E8E0 /* Resources */,
-				3AF72AA5ED097CC65C0AD45B /* Pods */,
-				4C18DFB23C5BB7AAD191C26A /* ExpoModulesProviders */,
+				F3006A85E939487AA4480988 /* Resources */,
+				9E541FF36F1199A47F6BF54C /* Pods */,
+				D2D06E13BE8563109017627D /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -136,30 +136,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		9938253A597747A3A853E8E0 /* Resources */ = {
+		9E541FF36F1199A47F6BF54C /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				CE049BAC67AE4403B9ABB726 /* Jost_400Regular.ttf */,
-				CDD0D10E58FC4776B218AA1F /* Jost_500Medium.ttf */,
-				2C06FF78814B42308A60AEE5 /* Jost_600SemiBold.ttf */,
-				977560D1D3A849A28DB83589 /* Jost_700Bold.ttf */,
-				2FC9DA1CC06E4CAAAA02813C /* Jost_800ExtraBold.ttf */,
-				0F7B87CA36854221BE97F3C1 /* NotoSansSinhala_400Regular.ttf */,
-				BB559169F54D4FCEA0E41A5B /* NotoSansSinhala_500Medium.ttf */,
-				78DA00C1D2A14514A3FB6C86 /* NotoSansSinhala_600SemiBold.ttf */,
-				A394A65275D541D68562C6A9 /* NotoSansSinhala_700Bold.ttf */,
-				3DB94B07A3A6499DA30709F7 /* NotoSansSinhala_800ExtraBold.ttf */,
+				8BC80562F60DF200B8E85E0A /* Pods-CeylonGemExchange.debug.xcconfig */,
+				DCA54A6C377A070EF8C256DE /* Pods-CeylonGemExchange.release.xcconfig */,
 			);
-			name = Resources;
-			path = "";
-			sourceTree = "<group>";
-		};
-		B09E27BD404B66BE933E75CA /* CeylonGemExchange */ = {
-			isa = PBXGroup;
-			children = (
-				B9B26A5503FCD1E9004FEEC3 /* ExpoModulesProvider.swift */,
-			);
-			name = CeylonGemExchange;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -171,6 +155,37 @@
 			path = CeylonGemExchange/Supporting;
 			sourceTree = "<group>";
 		};
+		D2D06E13BE8563109017627D /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				0E3C584620B9BB097724C9F3 /* CeylonGemExchange */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		F3006A85E939487AA4480988 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4D5A522E5CE045DB9936A180 /* Jost_400Regular.ttf */,
+				18982308CDAD4F01B8242AFA /* Jost_500Medium.ttf */,
+				0CB706D67EFD4559A70384C9 /* Jost_600SemiBold.ttf */,
+				7FC483A5D9CD4C66AD147E18 /* Jost_700Bold.ttf */,
+				AF386C869A82461F83A58282 /* Jost_800ExtraBold.ttf */,
+				95D58DF5599E45A49759CCE9 /* NotoSansSinhala_400Regular.ttf */,
+				9FCB91DBB452423D899F5D64 /* NotoSansSinhala_500Medium.ttf */,
+				F77416867AB84FB591DD912B /* NotoSansSinhala_600SemiBold.ttf */,
+				058CF2BA618949A4908581A0 /* NotoSansSinhala_700Bold.ttf */,
+				E2CBCE26B8A147A7B326CECC /* NotoSansSinhala_800ExtraBold.ttf */,
+				5305847785A74EB3BE4EF2BF /* NotoSansTamil_400Regular.ttf */,
+				00C42EB151134B9595A928AA /* NotoSansTamil_500Medium.ttf */,
+				9F6030C2D564435DA587D46C /* NotoSansTamil_600SemiBold.ttf */,
+				9C6B5BEB7EB947B98AAD9E88 /* NotoSansTamil_700Bold.ttf */,
+				65FB81392E6143E1B0C95EB4 /* NotoSansTamil_800ExtraBold.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -179,13 +194,14 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "CeylonGemExchange" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				B9FF51B3380A631565149CEA /* [Expo] Configure project */,
+				8A075C214F8E5B082A04B0F3 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				D5596A541A4F79E7F230AE7A /* [CP] Embed Pods Frameworks */,
+				80C9A148E41E49A98730BD29 /* [Expo Dev Launcher] Strip Local Network Keys for Release */,
+				79BF52B40A585C711ADB0717 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -205,8 +221,8 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = 32MWN9CCFN;
 						LastSwiftMigration = 1250;
+						DevelopmentTeam = "32MWN9CCFN";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -237,17 +253,22 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				EF2D6ED1D54A4AE1BD124510 /* Jost_400Regular.ttf in Resources */,
-				08C37CDD0B9D44449DE6EDA0 /* Jost_500Medium.ttf in Resources */,
-				FD352274BA1C4DC5B5CF0367 /* Jost_600SemiBold.ttf in Resources */,
-				8599B3456D7246C9AA60D10D /* Jost_700Bold.ttf in Resources */,
-				28F0F992D9C64D8DAAC2E808 /* Jost_800ExtraBold.ttf in Resources */,
-				05AF2E8AF44743D0B2563337 /* NotoSansSinhala_400Regular.ttf in Resources */,
-				9C93669470804E97A8C31250 /* NotoSansSinhala_500Medium.ttf in Resources */,
-				23EA34B8EFD1496FB4EE8B2C /* NotoSansSinhala_600SemiBold.ttf in Resources */,
-				D1047695D5854E7B90A982A1 /* NotoSansSinhala_700Bold.ttf in Resources */,
-				E23C95995A624A13BD61AAF0 /* NotoSansSinhala_800ExtraBold.ttf in Resources */,
-				549F7E8BDCB450408D3559DF /* PrivacyInfo.xcprivacy in Resources */,
+				E4642ED9459546A9A57800E6 /* Jost_400Regular.ttf in Resources */,
+				5DF7605568E44AE0B95FEFF3 /* Jost_500Medium.ttf in Resources */,
+				1D7392F9488C4657A01578E2 /* Jost_600SemiBold.ttf in Resources */,
+				0558620918F843D6A40A43A5 /* Jost_700Bold.ttf in Resources */,
+				5E7ADF0AB4D94B1A825937AC /* Jost_800ExtraBold.ttf in Resources */,
+				1BDCAFC1FF5940698C77184B /* NotoSansSinhala_400Regular.ttf in Resources */,
+				7F469D52D6AA44A49ABC4F4C /* NotoSansSinhala_500Medium.ttf in Resources */,
+				B26B492582B84A90B94E175D /* NotoSansSinhala_600SemiBold.ttf in Resources */,
+				98DCF6A8B5324DE49C371694 /* NotoSansSinhala_700Bold.ttf in Resources */,
+				327766ACE4BB40AB99BD7F7D /* NotoSansSinhala_800ExtraBold.ttf in Resources */,
+				EE4320BAE6164552B43F9170 /* NotoSansTamil_400Regular.ttf in Resources */,
+				D87932EA64774BF19E575881 /* NotoSansTamil_500Medium.ttf in Resources */,
+				FF98D75B9334471FB2C7D06F /* NotoSansTamil_600SemiBold.ttf in Resources */,
+				F96BB84544F741C6BA97C69C /* NotoSansTamil_700Bold.ttf in Resources */,
+				45FCEB2EC33B4BEAB7BE4CF7 /* NotoSansTamil_800ExtraBold.ttf in Resources */,
+				F0FFC90E04A856C6C661BDC5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,63 +314,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange-resources.sh",
-				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoLocalization/ExpoLocalization_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
-				"${PODS_CONFIGURATION_BUILD_DIR}/React-timing/React-timing_privacy.bundle",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoLocalization_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-timing_privacy.bundle",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		B9FF51B3380A631565149CEA /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/CeylonGemExchange/CeylonGemExchange.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-CeylonGemExchange/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-CeylonGemExchange/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-CeylonGemExchange/expo-configure-project.sh\"\n";
-		};
-		D5596A541A4F79E7F230AE7A /* [CP] Embed Pods Frameworks */ = {
+		79BF52B40A585C711ADB0717 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -395,6 +360,80 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoLocalization/ExpoLocalization_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/React-timing/React-timing_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoLocalization_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-timing_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CeylonGemExchange/Pods-CeylonGemExchange-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		80C9A148E41E49A98730BD29 /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo Dev Launcher] Strip Local Network Keys for Release";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Strip dev-launcher-specific local network permission keys from non-Debug builds\n# This only removes _expo._tcp Bonjour services and the dev-launcher usage description.\n# Other Bonjour services and custom descriptions are preserved for production use.\n\nif [ \"$CONFIGURATION\" != \"Debug\" ]; then\n  PLIST_PATH=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n  if [ -f \"$PLIST_PATH\" ]; then\n    # Check if NSBonjourServices exists\n    if /usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" >/dev/null 2>&1; then\n      # Get the count of services\n      COUNT=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n\n      # Remove _expo._tcp\n      for ((i=COUNT-1; i>=0; i--)); do\n        SERVICE=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n        if echo \"$SERVICE\" | grep -q \"_expo._tcp\"; then\n          /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || true\n        fi\n      done\n\n      # If the array is now empty, remove it entirely\n      REMAINING=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n      if [ \"$REMAINING\" -eq \"0\" ]; then\n        /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null || true\n      fi\n    fi\n\n    # Only delete the description if it matches the dev-launcher default text\n    DESC=$(/usr/libexec/PlistBuddy -c \"Print :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n    if echo \"$DESC\" | grep -q \"Expo Dev Launcher\"; then\n      /usr/libexec/PlistBuddy -c \"Delete :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || true\n    fi\n  fi\nfi\n";
+		};
+		8A075C214F8E5B082A04B0F3 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/CeylonGemExchange/CeylonGemExchange.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-CeylonGemExchange/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-CeylonGemExchange/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-CeylonGemExchange/expo-configure-project.sh\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -403,7 +442,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				99A3ED24536FE9B381AD26F1 /* ExpoModulesProvider.swift in Sources */,
+				DC03603C735AAF2E4A6DE99F /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -412,15 +451,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6A4912584F3E040AAE9BDC47 /* Pods-CeylonGemExchange.debug.xcconfig */;
+			baseConfigurationReference = 8BC80562F60DF200B8E85E0A /* Pods-CeylonGemExchange.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = CeylonGemExchange/CeylonGemExchange.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 32MWN9CCFN;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -447,20 +483,20 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "32MWN9CCFN";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 37C8C305BD823A08921CD22F /* Pods-CeylonGemExchange.release.xcconfig */;
+			baseConfigurationReference = DCA54A6C377A070EF8C256DE /* Pods-CeylonGemExchange.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = CeylonGemExchange/CeylonGemExchange.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 32MWN9CCFN;
 				INFOPLIST_FILE = CeylonGemExchange/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -481,6 +517,9 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "32MWN9CCFN";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
 		};

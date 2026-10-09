@@ -31,6 +31,12 @@
 				<string>com.zeplalabs.ceylongems</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>exp+ceylon-gems</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
@@ -47,8 +53,20 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_expo._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Ceylon Gem Exchange uses your camera to take a profile photo.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to access your microphone</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ceylon Gem Exchange uses your photo library to set your profile photo.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
@@ -69,6 +87,11 @@
 		<string>NotoSansSinhala_600SemiBold.ttf</string>
 		<string>NotoSansSinhala_700Bold.ttf</string>
 		<string>NotoSansSinhala_800ExtraBold.ttf</string>
+		<string>NotoSansTamil_400Regular.ttf</string>
+		<string>NotoSansTamil_500Medium.ttf</string>
+		<string>NotoSansTamil_600SemiBold.ttf</string>
+		<string>NotoSansTamil_700Bold.ttf</string>
+		<string>NotoSansTamil_800ExtraBold.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>

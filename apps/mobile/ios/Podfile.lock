@@ -24,6 +24,9 @@ PODS:
     - Yoga
   - EXConstants (57.0.17):
     - ExpoModulesCore
+  - EXJSONUtils (57.0.2)
+  - EXManifests (57.0.2):
+    - ExpoModulesCore
   - Expo (57.0.19):
     - ExpoModulesCore
     - ExpoModulesJSI
@@ -45,6 +48,154 @@ PODS:
     - React-rendererdebug
     - React-utils
     - ReactAppDependencyProvider
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - expo-dev-client (57.0.19):
+    - EXManifests
+    - expo-dev-launcher
+    - expo-dev-menu
+    - expo-dev-menu-interface
+    - EXUpdatesInterface
+  - expo-dev-launcher (57.0.20):
+    - EXManifests
+    - expo-dev-launcher/Main (= 57.0.20)
+    - expo-dev-menu
+    - expo-dev-menu-interface
+    - ExpoModulesCore
+    - EXUpdatesInterface
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-jsinspector
+    - React-NativeModulesApple
+    - React-RCTAppDelegate
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactAppDependencyProvider
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - expo-dev-launcher/Main (57.0.20):
+    - EXManifests
+    - expo-dev-launcher/Unsafe
+    - expo-dev-menu
+    - expo-dev-menu-interface
+    - ExpoModulesCore
+    - EXUpdatesInterface
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-jsinspector
+    - React-NativeModulesApple
+    - React-RCTAppDelegate
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactAppDependencyProvider
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - expo-dev-launcher/Unsafe (57.0.20):
+    - EXManifests
+    - expo-dev-menu
+    - expo-dev-menu-interface
+    - ExpoModulesCore
+    - EXUpdatesInterface
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-jsinspector
+    - React-NativeModulesApple
+    - React-RCTAppDelegate
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactAppDependencyProvider
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - expo-dev-menu (57.0.19):
+    - expo-dev-menu/Main (= 57.0.19)
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - expo-dev-menu-interface (57.0.0)
+  - expo-dev-menu/Main (57.0.19):
+    - EXManifests
+    - expo-dev-menu-interface
+    - ExpoModulesCore
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-jsinspector
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
@@ -129,6 +280,8 @@ PODS:
   - ExpoVideo (57.0.5):
     - ExpoModulesCore
   - ExpoWebBrowser (57.0.2):
+    - ExpoModulesCore
+  - EXUpdatesInterface (57.0.2):
     - ExpoModulesCore
   - FBLazyVector (0.86.3)
   - hermes-engine (250829098.0.17):
@@ -2403,7 +2556,13 @@ PODS:
 DEPENDENCIES:
   - "ClerkExpo (from `../../../node_modules/.pnpm/@clerk+expo@4.6.2_@solana+web3.js@1.98.4_bufferutil@4.1.0_typescript@5.9.3_utf-8-valida_2730c55464b80856e31b64d6673b0006/node_modules/@clerk/expo/ios`)"
   - "EXConstants (from `../../../node_modules/.pnpm/expo-constants@57.0.17_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nativ_f37bd7a21ee8427759278e1c19b502f5/node_modules/expo-constants/ios`)"
+  - "EXJSONUtils (from `../../../node_modules/.pnpm/expo-json-utils@57.0.2/node_modules/expo-json-utils/ios`)"
+  - "EXManifests (from `../../../node_modules/.pnpm/expo-manifests@57.0.2_expo@57.0.19/node_modules/expo-manifests/ios`)"
   - "Expo (from `../../../node_modules/.pnpm/expo@57.0.19_b97dc7afb8e6d82a601d086c30428ed2/node_modules/expo`)"
+  - "expo-dev-client (from `../../../node_modules/.pnpm/expo-dev-client@57.0.19_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nati_d050f64f6f76af5095eb0488b9bff082/node_modules/expo-dev-client/ios`)"
+  - "expo-dev-launcher (from `../../../node_modules/.pnpm/expo-dev-launcher@57.0.20_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-na_c614a8ac2cbee989af9ceffcafb0e88f/node_modules/expo-dev-launcher`)"
+  - "expo-dev-menu (from `../../../node_modules/.pnpm/expo-dev-menu@57.0.19_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native_5c1a4ebe0a09d47daa3a7da685b65914/node_modules/expo-dev-menu`)"
+  - "expo-dev-menu-interface (from `../../../node_modules/.pnpm/expo-dev-menu-interface@57.0.0_expo@57.0.19/node_modules/expo-dev-menu-interface/ios`)"
   - "ExpoAsset (from `../../../node_modules/.pnpm/expo-asset@57.0.18_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native+me_82fa0a2e23f4c8f090cedbbb48b43750/node_modules/expo-asset/ios`)"
   - "ExpoBlur (from `../../../node_modules/.pnpm/expo-blur@57.0.2_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native+metr_cc35692c27fc7e5706175fe8712e20f2/node_modules/expo-blur/ios`)"
   - "ExpoDomWebView (from `../../../node_modules/.pnpm/@expo+dom-webview@57.0.1_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nat_c7d78163a6c3ff26ad592cb2d26dd55a/node_modules/@expo/dom-webview/ios`)"
@@ -2429,6 +2588,7 @@ DEPENDENCIES:
   - "ExpoUI (from `../../../node_modules/.pnpm/@expo+ui@57.0.15_@babel+core@7.29.7_@types+react@19.2.18_expo@57.0.19_react-dom@19.2.3__f567c0e11eddd3fe99e9dde220333abd/node_modules/@expo/ui/ios`)"
   - "ExpoVideo (from `../../../node_modules/.pnpm/expo-video@57.0.5_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native+met_c97e63e5d7a2da616a95fa004a827413/node_modules/expo-video/ios/ExpoVideo.podspec`)"
   - "ExpoWebBrowser (from `../../../node_modules/.pnpm/expo-web-browser@57.0.2_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nati_4ac9a28732fbcad5f1650418fc1f4393/node_modules/expo-web-browser/ios`)"
+  - "EXUpdatesInterface (from `../../../node_modules/.pnpm/expo-updates-interface@57.0.2_expo@57.0.19/node_modules/expo-updates-interface/ios`)"
   - "FBLazyVector (from `../../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.87.1_@babel+core@7._aa0af34d887d8ac8d94e3f81ef801871/node_modules/react-native/Libraries/FBLazyVector`)"
   - "hermes-engine (from `../../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.87.1_@babel+core@7._aa0af34d887d8ac8d94e3f81ef801871/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)"
   - "RCTDeprecation (from `../../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.87.1_@babel+core@7._aa0af34d887d8ac8d94e3f81ef801871/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)"
@@ -2520,8 +2680,20 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/@clerk+expo@4.6.2_@solana+web3.js@1.98.4_bufferutil@4.1.0_typescript@5.9.3_utf-8-valida_2730c55464b80856e31b64d6673b0006/node_modules/@clerk/expo/ios"
   EXConstants:
     :path: "../../../node_modules/.pnpm/expo-constants@57.0.17_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nativ_f37bd7a21ee8427759278e1c19b502f5/node_modules/expo-constants/ios"
+  EXJSONUtils:
+    :path: "../../../node_modules/.pnpm/expo-json-utils@57.0.2/node_modules/expo-json-utils/ios"
+  EXManifests:
+    :path: "../../../node_modules/.pnpm/expo-manifests@57.0.2_expo@57.0.19/node_modules/expo-manifests/ios"
   Expo:
     :path: "../../../node_modules/.pnpm/expo@57.0.19_b97dc7afb8e6d82a601d086c30428ed2/node_modules/expo"
+  expo-dev-client:
+    :path: "../../../node_modules/.pnpm/expo-dev-client@57.0.19_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nati_d050f64f6f76af5095eb0488b9bff082/node_modules/expo-dev-client/ios"
+  expo-dev-launcher:
+    :path: "../../../node_modules/.pnpm/expo-dev-launcher@57.0.20_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-na_c614a8ac2cbee989af9ceffcafb0e88f/node_modules/expo-dev-launcher"
+  expo-dev-menu:
+    :path: "../../../node_modules/.pnpm/expo-dev-menu@57.0.19_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native_5c1a4ebe0a09d47daa3a7da685b65914/node_modules/expo-dev-menu"
+  expo-dev-menu-interface:
+    :path: "../../../node_modules/.pnpm/expo-dev-menu-interface@57.0.0_expo@57.0.19/node_modules/expo-dev-menu-interface/ios"
   ExpoAsset:
     :path: "../../../node_modules/.pnpm/expo-asset@57.0.18_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native+me_82fa0a2e23f4c8f090cedbbb48b43750/node_modules/expo-asset/ios"
   ExpoBlur:
@@ -2572,6 +2744,8 @@ EXTERNAL SOURCES:
     :podspec: "../../../node_modules/.pnpm/expo-video@57.0.5_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-native+met_c97e63e5d7a2da616a95fa004a827413/node_modules/expo-video/ios/ExpoVideo.podspec"
   ExpoWebBrowser:
     :path: "../../../node_modules/.pnpm/expo-web-browser@57.0.2_expo@57.0.19_react-native@0.86.3_@babel+core@7.29.7_@react-nati_4ac9a28732fbcad5f1650418fc1f4393/node_modules/expo-web-browser/ios"
+  EXUpdatesInterface:
+    :path: "../../../node_modules/.pnpm/expo-updates-interface@57.0.2_expo@57.0.19/node_modules/expo-updates-interface/ios"
   FBLazyVector:
     :path: "../../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.87.1_@babel+core@7._aa0af34d887d8ac8d94e3f81ef801871/node_modules/react-native/Libraries/FBLazyVector"
   hermes-engine:
@@ -2745,7 +2919,13 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   ClerkExpo: e37fcce991cfa8537e8e0f8b00ab1e7c24f2a01f
   EXConstants: 799577d2516460afb4b57874d6823a62327ce5c7
+  EXJSONUtils: a49e3ef80dff762108e5690c7b2f360675dcf7f6
+  EXManifests: 4c53b2602e03ccf44d0b4ff9c5d655b2c5acba3f
   Expo: e174d0ecd763a050d7c8a25a0a8b5dadc43158e8
+  expo-dev-client: 9cd43bb07fb625c51b436d4cb23be2fc932f8d26
+  expo-dev-launcher: 05c72f3a22b4c742b06bd36fa391a30a990556a0
+  expo-dev-menu: c3b4fc9723fe88118efa2dba3e8a27cf00edc53c
+  expo-dev-menu-interface: 7a59e803916fbfd1b96c75ff91ea8dddac7e722f
   ExpoAsset: a917b756b2e4fe12cef1ac3bca5fd849ddb2b919
   ExpoBlur: 69e67b4fbfed6f7325377af2aefa8aa4f00cd2af
   ExpoDomWebView: beaec034e51bd028428b98bb1f2633ab79c6d095
@@ -2771,6 +2951,7 @@ SPEC CHECKSUMS:
   ExpoUI: 3a63ce87d7d2d2a565fd1eabba08ed5ecdae7991
   ExpoVideo: 31d5dc617d913808aeba05c3ab900712637b0e47
   ExpoWebBrowser: 9b98d939d5f1c5dd8f523f0a0683056fb1204434
+  EXUpdatesInterface: 4c96533f11c8cefe879bd506564cc2d537f56804
   FBLazyVector: 2138c6c2ab66c31bf5754dc18097fbc498a49c7f
   hermes-engine: f950618e994e43d007f013c66a7666906b11ed29
   RCTDeprecation: 96f68ebf33f8762466b01d57d6e873c4f30efb07
