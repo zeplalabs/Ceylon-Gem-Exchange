@@ -121,6 +121,7 @@ export function BottomNavBar<T extends string>({
       <GlassSurface
         radius={22}
         clarity={55}
+        androidFillAlpha={0.92}
         rim={palette.rim}
         accessibilityRole="tablist"
         style={styles.navBar}

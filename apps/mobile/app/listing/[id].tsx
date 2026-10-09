@@ -554,7 +554,13 @@ export default function ListingDetailScreen() {
             }),
           ]}
         >
-          <GlassSurface clarity={55} rim={tone.rim} radius={28} style={styles.actionBarGlass}>
+          <GlassSurface
+            clarity={55}
+            androidFillAlpha={0.92}
+            rim={tone.rim}
+            radius={28}
+            style={styles.actionBarGlass}
+          >
             <PressableScale
               onPress={callSeller}
               style={styles.actionButton}

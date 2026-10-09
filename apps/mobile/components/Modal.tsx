@@ -53,7 +53,12 @@ export function BottomSheet({
         accessibilityRole="button"
       />
       <View style={styles.sheetWrap} accessibilityViewIsModal>
-        <GlassSurface clarity={55} radius={radius} style={[styles.sheet, style]}>
+        <GlassSurface
+          clarity={55}
+          androidFillAlpha={0.92}
+          radius={radius}
+          style={[styles.sheet, style]}
+        >
           <View style={styles.grabber} />
           {children}
         </GlassSurface>
@@ -91,7 +96,7 @@ export function ConfirmDialog({
   return (
     <RNModal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.dialogBackdrop} accessibilityViewIsModal>
-        <GlassSurface clarity={30} radius={radii.lg} style={styles.dialog}>
+        <GlassSurface clarity={30} androidFillAlpha={0.96} radius={radii.lg} style={styles.dialog}>
           <Text style={[styles.dialogTitle, { fontFamily: fonts.semibold }]}>{title}</Text>
           {message ? (
             <Text style={[styles.dialogMessage, { fontFamily: fonts.regular }]}>{message}</Text>

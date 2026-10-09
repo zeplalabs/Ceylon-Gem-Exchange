@@ -2,6 +2,7 @@ import { neutral, radii } from '@ceylon-gems/ui-tokens'
 import { BlurView } from 'expo-blur'
 import { type ReactNode } from 'react'
 import {
+  Platform,
   StyleSheet,
   View,
   type AccessibilityRole,
@@ -25,6 +26,16 @@ interface GlassSurfaceProps {
   rim?: string
   /** Corner radius shared by the blur, tint, and border layers — pass a `radii` token, not the outer `style`. */
   radius?: number
+  /**
+   * Overrides Android's flat-tint fallback fill opacity (0-1) — ignored on
+   * iOS, which always derives its look from `clarity`'s real-blur formula
+   * and never reads this prop. Use for persistent chrome that needs to stay
+   * legible without a blurred backdrop to lean on (nav bars, sheets,
+   * dialogs) when the default `clarity`-driven Android opacity reads too
+   * see-through for it — see the Android branch below for why that default
+   * exists at all.
+   */
+  androidFillAlpha?: number
   /** e.g. "tablist" when this surface is the track for a SegmentedControl/SegmentedTabs group. */
   accessibilityRole?: AccessibilityRole
   /** For measuring the surface itself, e.g. a SegmentedControl track sizing a sliding indicator. */
@@ -55,16 +66,49 @@ export function GlassSurface({
   clarity = 55,
   rim = neutral.glassRim,
   radius = radii.md,
+  androidFillAlpha,
   accessibilityRole,
   onLayout,
   style,
   children,
 }: GlassSurfaceProps) {
   const c = Math.max(0, Math.min(100, clarity)) / 100
-  const fillAlpha = 0.14 - c * 0.09
+  // Android: expo-blur has no real blur to offer (confirmed against its own
+  // native source — `BlurMethod` defaults to `NONE`, and with no blur
+  // target configured, `<BlurView>` just paints its OWN flat background
+  // color instead, computed from `tint`/`intensity` via
+  // TintStyle.DARK.toColorInt() — a near-black layer at roughly 19-48%
+  // opacity for our intensity range, not a neutral no-op. Left alone, that
+  // actively darkens every glass surface with an unintended dark cast
+  // underneath our own light tint, on top of there being no blur at all.
+  // `intensity: 0` neutralizes that contribution entirely (its opacity
+  // formula is a direct function of intensity, so 0 → fully transparent
+  // regardless of `tint`), and a meaningfully higher flat `fillAlpha` on
+  // our own tint View below takes over as the whole "glass" read — the
+  // standard way glassmorphism degrades gracefully without a real
+  // backdrop-filter.
+  //
+  // That tint was white at first (matching the fill color iOS's real blur
+  // uses), which was the wrong axis to tune: pushing a *white* fill's alpha
+  // up to fight legibility just turns the surface light gray/white — a
+  // fundamentally different hue from the app's dark theme, no matter how
+  // high the alpha goes (confirmed by direct iOS/Android screenshot
+  // comparison — iOS's bar reads dark and cool-toned because real blur
+  // samples the dark backdrop *underneath* a subtle white wash; Android's
+  // flat white tint has no backdrop to sample, so it just trends toward
+  // light/gray instead of staying dark). Filling with this dark navy
+  // instead (same `6,11,26` the screen's own `neutral.overlay` gradient
+  // uses) means a higher alpha deepens toward dark glass, not white — the
+  // right direction for this app's theme. Tuned by eye on-device; there's
+  // no Android equivalent of the Claude Design mockups to pixel-match
+  // against, and the mockups' own numbers assume real blur Android doesn't
+  // have, so "looks right on-device" is the only verification available.
+  const isAndroid = Platform.OS === 'android'
+  const androidFillColor = '6,11,26'
+  const fillAlpha = isAndroid ? (androidFillAlpha ?? 0.42 - c * 0.14) : 0.14 - c * 0.09
   const rimAlpha = 0.1 + c * 0.22
   const sheenAlpha = 0.16 + c * 0.3
-  const intensity = Math.round(28 + c * 42)
+  const intensity = isAndroid ? 0 : Math.round(28 + c * 42)
 
   return (
     <View
@@ -84,7 +128,7 @@ export function GlassSurface({
           styles.behindContent,
           {
             borderRadius: radius,
-            backgroundColor: `rgba(255,255,255,${fillAlpha})`,
+            backgroundColor: `rgba(${isAndroid ? androidFillColor : '255,255,255'},${fillAlpha})`,
             borderColor: `rgba(${rim},${rimAlpha})`,
             borderTopColor: `rgba(255,255,255,${sheenAlpha})`,
           },
