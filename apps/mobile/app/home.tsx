@@ -8,7 +8,14 @@ import { Redirect, useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { BottomNavBar, BottomSheet, GlassSurface, ListingCard, SearchBar } from '../components'
+import {
+  BottomNavBar,
+  BottomSheet,
+  GlassSurface,
+  ListingCard,
+  SearchBar,
+  Skeleton,
+} from '../components'
 import {
   BellIcon,
   CloseIcon,
@@ -357,26 +364,30 @@ export default function HomeScreen() {
         </View>
 
         <ScrollView style={styles.filterBody} keyboardShouldPersistTaps="handled">
-          {Object.keys(filterGroups).map((group) => (
-            <View key={group} style={styles.filterGroup}>
-              <Text style={[styles.filterGroupLabel, { fontFamily: fonts.bold }]}>
-                {group.toUpperCase()}
-              </Text>
-              <View style={styles.filterOptions}>
-                {filterGroups[group]!.map((option) => {
-                  const isSelected = (picked[group] ?? []).includes(option)
-                  return (
-                    <FilterOptionPill
-                      key={option}
-                      label={option}
-                      selected={isSelected}
-                      onPress={() => toggleFilterOption(group, option)}
-                    />
-                  )
-                })}
+          {filterData === null ? (
+            <FilterGroupsSkeleton />
+          ) : (
+            Object.keys(filterGroups).map((group) => (
+              <View key={group} style={styles.filterGroup}>
+                <Text style={[styles.filterGroupLabel, { fontFamily: fonts.bold }]}>
+                  {group.toUpperCase()}
+                </Text>
+                <View style={styles.filterOptions}>
+                  {filterGroups[group]!.map((option) => {
+                    const isSelected = (picked[group] ?? []).includes(option)
+                    return (
+                      <FilterOptionPill
+                        key={option}
+                        label={option}
+                        selected={isSelected}
+                        onPress={() => toggleFilterOption(group, option)}
+                      />
+                    )
+                  })}
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
 
           <View style={styles.priceSection}>
             <View style={styles.priceHeader}>
@@ -427,6 +438,34 @@ export default function HomeScreen() {
         </View>
       </BottomSheet>
     </LiveGradientBackground>
+  )
+}
+
+// Mimics the real filter sheet's group-label + wrapped-pills layout while
+// useFilters is still loading. Three representative groups, not all five —
+// showing the real taxonomy's exact group count here would imply false
+// precision about what's actually loading. Varied pill widths so it reads
+// as content, not a uniform robotic grid.
+const SKELETON_PILL_WIDTHS = [
+  [90, 70, 100, 64],
+  [60, 84, 56],
+  [72, 96, 68, 80, 60],
+]
+
+function FilterGroupsSkeleton() {
+  return (
+    <>
+      {SKELETON_PILL_WIDTHS.map((widths, groupIndex) => (
+        <View key={groupIndex} style={styles.filterGroup}>
+          <Skeleton width={70} height={11} radius={3} style={{ marginBottom: 11 }} />
+          <View style={styles.filterOptions}>
+            {widths.map((width, pillIndex) => (
+              <Skeleton key={pillIndex} width={width} height={36} radius={14} />
+            ))}
+          </View>
+        </View>
+      ))}
+    </>
   )
 }
 
