@@ -90,6 +90,27 @@ Then fill in:
   containers). You do need to fill in:
   - `CLERK_SECRET_KEY` — from your Clerk dashboard → **API Keys** (Development instance)
   - `CLERK_WEBHOOK_SIGNING_SECRET` — from the webhook endpoint you create in the Clerk dashboard (the Svix signing secret)
+  - `DATABASE_URL` — **optional.** Leave it blank to use your own local
+    Docker Postgres (fully isolated — migrations/seeds only give you the
+    same taxonomy structure, not anyone else's actual data). Set it to
+    point at the shared **Supabase** dev database instead if you want
+    everyone on the team (devs and BAs) looking at the same live data —
+    project `ceylon-gem-exchange`, region `ap-south-1`, already migrated
+    and seeded, so you don't need to run those yourself, just connect.
+    **The connection string isn't in `.env.example` and never will be — it
+    contains the database password, which doesn't belong in git even
+    though the repo itself is private.** Ask a teammate who already has it
+    to send it to you directly (password manager, not Slack/email/a
+    commit). Supabase doesn't expose an already-set database password
+    again through the dashboard, so if nobody on the team has it anymore,
+    the only option is **Settings** → **Database** → **Reset database
+    password** — but that invalidates it for everyone who already has the
+    old one, so treat it as a last resort and tell the team immediately
+    after, not something to do just because you personally can't find it.
+    The connection string itself is under **Settings** → **Database** →
+    **Connection string** → **Session pooler** tab (not Transaction pooler
+    or the direct host — see `.env.example`'s comment for why those two
+    don't work here).
 - **`apps/mobile/.env`**:
   - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` — same Clerk dashboard page as above, the publishable key (safe to expose client-side)
   - `EXPO_PUBLIC_API_URL` — leave this as `http://localhost:3000`; `lib/apiUrl.ts` automatically rewrites it to `10.0.2.2` on Android, since the Android emulator can't resolve `localhost` as the host machine (works for both simulator/emulator with no manual switching between platforms). A **physical device** needs your machine's LAN IP or a tunnel (e.g. `ngrok`) instead — set that directly and it passes through unchanged
