@@ -9,15 +9,18 @@
     "./typescript/bundler.json": "./typescript/bundler.json",
     "./typescript/react-native.json": "./typescript/react-native.json",
     "./eslint/base.js": "./eslint/base.js",
-    "./eslint/react-native.js": "./eslint/react-native.js"
+    "./eslint/react-native.js": "./eslint/react-native.js",
+    "./eslint/next.js": "./eslint/next.js"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "3.3.7",
     "@eslint/js": "9.39.5",
     "eslint": "9.39.5",
+    "eslint-config-next": "15.5.27",
     "eslint-config-prettier": "9.1.2",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",

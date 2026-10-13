@@ -1,0 +1,27 @@
+{
+  "name": "@ceylon-gems/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ceylon-gems/i18n": "workspace:*",
+    "@ceylon-gems/ui-tokens": "workspace:*",
+    "next": "15.5.27",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@ceylon-gems/config": "workspace:*",
+    "@types/node": "26.4.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3"
+  }
+}

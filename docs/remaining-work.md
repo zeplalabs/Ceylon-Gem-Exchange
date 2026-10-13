@@ -34,12 +34,12 @@ listings to exist before there's anything to upload photos for or index.
   - [x] `users` table + `role` enum (`user`/`admin`/`moderator`)
   - [x] JWT verification middleware (`ClerkAuthGuard` + `RolesGuard`)
   - [ ] Real Sri Lankan phone sign-up is blocked — Clerk SMS tier issue, needs a support ticket (see memory)
-- [x] **E0.3** Design System & Trilingual Routing — ✅ mostly done
+- [x] **E0.3** Design System & Trilingual Routing — ✅ done
   - [x] `packages/ui-tokens` design tokens
   - [x] `packages/i18n` — EN/SI/TA dictionaries, CI-enforced key parity
   - [x] Mobile locale switching (`LocaleProvider`)
-  - [ ] `/[locale]` URL routing — N/A until a web app exists
-  - [ ] Component kit "shared by web and mobile" — currently mobile-only, no web app to share with yet
+  - [x] `/[locale]` URL routing — `apps/web` (Next.js 15, App Router), `middleware.ts` redirects bare paths to `defaultLocale`, invalid locales 404
+  - [x] Design tokens reach a real web app — `apps/web` imports `@ceylon-gems/ui-tokens` and `@ceylon-gems/i18n` directly (same dictionaries/gem-tone colors mobile uses, not duplicated copies). **Not** literal React Native component reuse via react-native-web — matches this project's existing pattern elsewhere (`LiveGradientBackground.web.tsx`) of platform-appropriate re-implementations sharing tokens/content, not forced one-codebase components. `apps/web` is currently one proof-of-concept page, not a built-out site.
 
 ## Phase 1 — MVP
 
