@@ -316,3 +316,4 @@ apps/mobile/expo-env.d.ts` before committing if you've used the dev
 - [Design tokens](docs/design-tokens.md) — gem-tone color palettes, typography, spacing, radii (`packages/ui-tokens`)
 - [Component kit](docs/component-kit.md) — the mobile app's shared UI components (`apps/mobile/components`)
 - [Theme guide](docs/theme-guide.md) — the pixel-perfect workflow for implementing a screen from a Claude Design mockup
+- [Remaining work](docs/remaining-work.md) — epic-by-epic status against the full development plan, and what's next
