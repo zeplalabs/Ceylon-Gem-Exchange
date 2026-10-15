@@ -1,125 +1,139 @@
+import { useAuth } from '@clerk/expo'
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Button, ConfirmDialog, GlassSurface, IconButton, PressableScale } from '../components'
-import { ChevronLeftIcon, GemIcon, HeartIcon, PlusIcon, ViewsIcon } from '../components/icons'
+import {
+  ChatIcon,
+  ChevronLeftIcon,
+  GemIcon,
+  HeartIcon,
+  PlusIcon,
+  ViewsIcon,
+} from '../components/icons'
 import { GRADIENT_140 } from '../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
+import { API_URL } from '../lib/apiUrl'
+import { specForDetails } from '../lib/listingSpec'
 import { useCurrency } from '../providers/CurrencyProvider'
 import { useGemTone } from '../providers/GemToneProvider'
 
-type AdStatus = 'Active' | 'Pending' | 'Sold' | 'Expired'
+type RealStatus = 'draft' | 'pending_review' | 'active' | 'paused' | 'expired' | 'sold' | 'removed'
 type TabKey = 'All' | 'Active' | 'Pending' | 'Sold'
 
-interface MyAd {
-  id: string
-  name: string
-  spec: string
-  priceUsd: number
-  views: string
-  saves: string
-  status: AdStatus
-  posted: string
+interface RealAdDetails {
+  species?: string
+  caratWeight?: number
+  shape?: string
+  certAuthority?: string
+  brand?: string
+  equipmentType?: string
+  condition?: string
 }
 
-// Ported verbatim from "Ceylon Gem Exchange My Ads.dc.html"'s own `allAds`
-// array — demo content in the same sense as Notifications' seeded items,
-// not real listings with a backend behind them. `priceUsd` is converted
-// from the mockup's literal "$ 8,400"-style strings so prices render
-// through `useCurrency().formatPrice()` like every other price in the app
-// (lib/listings.ts does the same); `views`/`saves` stay as the mockup's own
-// literal strings ("1.2k") since they're display-only demo counters, not
-// values this screen computes. Four of the five names/prices exactly match
-// featuredListings in lib/listings.ts (this seller's own real listings
-// elsewhere in the demo data) — coincidence in the source mockups, kept
-// as-is rather than cross-wired, since the two screens were authored with
-// independent demo datasets and "Natural Spinel Pair"/"Teal Sapphire" don't
-// line up with that catalog closely enough to treat them as the same record.
-const INITIAL_ADS: MyAd[] = [
-  {
-    id: '1',
-    name: 'Ceylon Blue Sapphire',
-    spec: '3.14 ct · Oval · GIA',
-    priceUsd: 8400,
-    views: '412',
-    saves: '38',
-    status: 'Active',
-    posted: '2d ago',
-  },
-  {
-    id: '2',
-    name: 'Star Ruby Cabochon',
-    spec: '5.60 ct · Cabochon',
-    priceUsd: 3250,
-    views: '196',
-    saves: '12',
-    status: 'Active',
-    posted: '5d ago',
-  },
-  {
-    id: '3',
-    name: 'Natural Spinel Pair',
-    spec: '1.88 ct · Round · NGJA',
-    priceUsd: 1980,
-    views: '88',
-    saves: '6',
-    status: 'Pending',
-    posted: '1d ago',
-  },
-  {
-    id: '4',
-    name: 'Rainbow Moonstone',
-    spec: '6.10 ct · Pear',
-    priceUsd: 890,
-    views: '1.2k',
-    saves: '94',
-    status: 'Sold',
-    posted: '3w ago',
-  },
-  {
-    id: '5',
-    name: 'Teal Sapphire',
-    spec: '2.76 ct · Pear',
-    priceUsd: 4320,
-    views: '54',
-    saves: '3',
-    status: 'Expired',
-    posted: '2mo ago',
-  },
-]
+interface RealAd {
+  id: string
+  type: 'gem' | 'equipment'
+  title: string
+  priceAmountCents: number
+  priceCurrency: string
+  status: RealStatus
+  publishedAt: string | null
+  createdAt: string
+  details: RealAdDetails | null
+  viewCount: number
+  favoritesCount: number
+  inquiryCount: number
+}
 
-const TAB_KEYS: TabKey[] = ['All', 'Active', 'Pending', 'Sold']
+type DeleteTarget = { id: string; kind: 'hard' | 'soft' }
+
+// "2d ago"/"3w ago"/"2mo ago" — same literal vocabulary the mockup's own
+// `allAds` seed used, now computed from a real `publishedAt`/`createdAt`
+// instead of being part of the demo content.
+function relativeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const diffDays = Math.max(0, Math.floor(diffMs / 86_400_000))
+  if (diffDays < 1) return '<1d ago'
+  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  return `${Math.floor(diffDays / 30)}mo ago`
+}
 
 // Reached from Profile's "My ads" row. Ports "Ceylon Gem Exchange My
-// Ads.dc.html" — stat tiles, status tabs (mockup deliberately has no
-// "Expired" tab even though it's a real status), a card list with
-// per-status action pills, an empty state, and a floating "Post a new ad"
-// button. The "+" nav button and the floating button have no real
-// destination yet (no Post Ad screen/route exists in this app — the
-// `postAd` i18n namespace is a seeded stub from an earlier session that was
-// never built into a screen), so both render without a Pressable per the
-// same "don't wire a dead tap target" rule app/profile.tsx documents.
-// Status-changing action pills (Mark sold/Relist/Renew/Delete) are real
-// local-state mutations instead — no new screen needed, matching this
-// app's "local-only toggle" precedent (notification prefs, two-factor,
-// gem tone) — while Edit/Promote/View stay decorative for the same reason
-// as the nav buttons.
+// Ads.dc.html" — stat tiles, status tabs, a card list with per-status
+// action pills, an empty state, and a floating "Post a new ad" button.
+// Real data now (`GET /listings/mine`, extended to join gem/equipment
+// details for a real spec line, a real `viewCount` column, and grouped
+// `favorites`/`inquiry_threads` counts) — replaces the static `allAds`
+// seed this screen launched with. `views` increments on every real
+// `GET /listings/:id` load that isn't the seller's own (a raw impression
+// count, not unique visitors — see `listings.viewCount`'s schema comment);
+// `saves` is the real `favorites` count; the card's third meta stat
+// (new — the mockup's own card only had two) is how many distinct buyers
+// have a real inquiry thread about that listing. Status actions are real
+// `PATCH /listings/:id/status` calls
+// (`submit`/`mark_sold`/`relist`/`renew`/`remove`/`deactivate`/`reactivate`,
+// the last four added to the backend specifically for this screen — see
+// listings.controller.ts's `STATUS_TRANSITIONS`) or, for a still-`draft`
+// ad, a real hard `DELETE /listings/:id`. `deactivate`/`reactivate` are a
+// new `active` <-> `paused` pair — a seller pausing a live ad without
+// deleting it, distinct from `remove`'s one-way trip to `removed` (no
+// transition exists back out of that status). `removed` listings are
+// filtered out entirely, same as everywhere else they're treated as gone.
+// Edit routes to
+// `post-ad.tsx`'s own edit mode (`?id=`) — real only while a listing is
+// still `draft`/`pending_review`, matching `PATCH /listings/:id`'s own
+// lock-after-publish rule (post-ad.tsx's confirm dialog already states
+// this to the seller). "Promote" was dropped (not building listing
+// boosts); "View" on a sold ad stays decorative since there's no
+// seller-facing "view my own live listing" screen to send it to yet.
 export default function MyAdsScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
+  const { getToken } = useAuth()
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
   const { formatPrice } = useCurrency()
 
-  const [ads, setAds] = useState<MyAd[]>(INITIAL_ADS)
+  const [ads, setAds] = useState<RealAd[] | null>(null)
   const [tab, setTab] = useState<TabKey>('All')
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const token = await getToken()
+        if (!token) return
+        const res = await fetch(`${API_URL}/listings/mine`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok || cancelled) return
+        setAds((await res.json()) as RealAd[])
+      } catch {
+        // Leave `ads` null — renders the loading spinner forever rather
+        // than a misleading empty state; a real network/auth failure here
+        // is rare enough not to need its own dedicated error screen.
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+    // `getToken` deliberately excluded — see edit-profile.tsx's identical
+    // fix; Clerk's `useAuth()` hands back a new function identity on every
+    // render, which would re-fetch on every render instead of once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function goBack() {
     if (router.canGoBack()) {
@@ -129,13 +143,62 @@ export default function MyAdsScreen() {
     }
   }
 
-  function setStatus(id: string, status: AdStatus) {
-    setAds((prev) => prev.map((ad) => (ad.id === id ? { ...ad, status } : ad)))
+  async function performAction(
+    ad: RealAd,
+    action: 'submit' | 'mark_sold' | 'relist' | 'renew' | 'deactivate' | 'reactivate',
+  ) {
+    if (busyId) return
+    setBusyId(ad.id)
+    setActionError(null)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`${API_URL}/listings/${ad.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action }),
+      })
+      const body = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(body?.message ?? `Failed to update this ad (${res.status})`)
+      }
+      setAds((prev) =>
+        prev ? prev.map((a) => (a.id === ad.id ? { ...a, status: body.status } : a)) : prev,
+      )
+    } catch (err) {
+      setActionError(err instanceof Error && err.message ? err.message : t.common.genericError)
+    } finally {
+      setBusyId(null)
+    }
   }
 
-  function confirmDelete() {
-    setAds((prev) => prev.filter((ad) => ad.id !== deleteId))
-    setDeleteId(null)
+  async function confirmDeleteOrRemove() {
+    if (!deleteTarget || busyId) return
+    const { id, kind } = deleteTarget
+    setBusyId(id)
+    setActionError(null)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(
+        kind === 'hard' ? `${API_URL}/listings/${id}` : `${API_URL}/listings/${id}/status`,
+        {
+          method: kind === 'hard' ? 'DELETE' : 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          ...(kind === 'soft' ? { body: JSON.stringify({ action: 'remove' }) } : {}),
+        },
+      )
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.message ?? `Failed to remove this ad (${res.status})`)
+      }
+      setAds((prev) => (prev ? prev.filter((a) => a.id !== id) : prev))
+    } catch (err) {
+      setActionError(err instanceof Error && err.message ? err.message : t.common.genericError)
+    } finally {
+      setBusyId(null)
+      setDeleteTarget(null)
+    }
   }
 
   function tabLabel(key: TabKey) {
@@ -151,69 +214,148 @@ export default function MyAdsScreen() {
     }
   }
 
-  function statusLabel(status: AdStatus) {
+  function statusLabel(status: RealStatus) {
     switch (status) {
-      case 'Active':
-        return t.myAds.statusActive
-      case 'Pending':
+      case 'draft':
+        return t.myAds.statusDraft
+      case 'pending_review':
         return t.myAds.statusPending
-      case 'Sold':
+      case 'active':
+        return t.myAds.statusActive
+      case 'paused':
+        return t.myAds.statusPaused
+      case 'sold':
         return t.myAds.statusSold
-      case 'Expired':
+      case 'expired':
         return t.myAds.statusExpired
+      case 'removed':
+        return ''
     }
   }
 
-  function statusColor(status: AdStatus) {
+  function statusColor(status: RealStatus) {
     switch (status) {
-      case 'Active':
+      case 'active':
         return tone.accent
-      case 'Pending':
+      case 'pending_review':
+      case 'draft':
         return '#ffc65c'
-      case 'Sold':
+      case 'sold':
         return '#7ee6a8'
-      case 'Expired':
+      case 'expired':
+      case 'paused':
+      case 'removed':
         return 'rgba(255,255,255,0.55)'
     }
   }
 
-  function actionsFor(ad: MyAd) {
-    if (ad.status === 'Sold') {
-      return [
-        {
-          key: 'relist',
-          label: t.myAds.relist,
-          primary: true,
-          onPress: () => setStatus(ad.id, 'Active'),
-        },
-        { key: 'view', label: t.myAds.view, primary: false },
-      ]
+  function actionsFor(ad: RealAd) {
+    switch (ad.status) {
+      case 'draft':
+        return [
+          {
+            key: 'edit',
+            label: t.myAds.edit,
+            primary: false,
+            onPress: () => router.push(`/post-ad?id=${ad.id}` as never),
+          },
+          {
+            key: 'submit',
+            label: t.myAds.submitForReview,
+            primary: true,
+            onPress: () => performAction(ad, 'submit'),
+          },
+          {
+            key: 'delete',
+            label: t.myAds.delete,
+            primary: false,
+            onPress: () => setDeleteTarget({ id: ad.id, kind: 'hard' }),
+          },
+        ]
+      case 'pending_review':
+        return [
+          {
+            key: 'edit',
+            label: t.myAds.edit,
+            primary: false,
+            onPress: () => router.push(`/post-ad?id=${ad.id}` as never),
+          },
+          {
+            key: 'remove',
+            label: t.myAds.remove,
+            primary: false,
+            onPress: () => setDeleteTarget({ id: ad.id, kind: 'soft' }),
+          },
+        ]
+      case 'sold':
+        return [
+          {
+            key: 'relist',
+            label: t.myAds.relist,
+            primary: true,
+            onPress: () => performAction(ad, 'relist'),
+          },
+          { key: 'view', label: t.myAds.view, primary: false },
+        ]
+      case 'expired':
+        return [
+          {
+            key: 'renew',
+            label: t.myAds.renew,
+            primary: true,
+            onPress: () => performAction(ad, 'renew'),
+          },
+          {
+            key: 'delete',
+            label: t.myAds.delete,
+            primary: false,
+            onPress: () => setDeleteTarget({ id: ad.id, kind: 'soft' }),
+          },
+        ]
+      case 'paused':
+        return [
+          {
+            key: 'reactivate',
+            label: t.myAds.reactivate,
+            primary: true,
+            onPress: () => performAction(ad, 'reactivate'),
+          },
+          {
+            key: 'remove',
+            label: t.myAds.remove,
+            primary: false,
+            onPress: () => setDeleteTarget({ id: ad.id, kind: 'soft' }),
+          },
+        ]
+      case 'active':
+      default:
+        return [
+          {
+            key: 'deactivate',
+            label: t.myAds.deactivate,
+            primary: false,
+            onPress: () => performAction(ad, 'deactivate'),
+          },
+          {
+            key: 'markSold',
+            label: t.myAds.markSold,
+            primary: false,
+            onPress: () => performAction(ad, 'mark_sold'),
+          },
+        ]
     }
-    if (ad.status === 'Expired') {
-      return [
-        {
-          key: 'renew',
-          label: t.myAds.renew,
-          primary: true,
-          onPress: () => setStatus(ad.id, 'Active'),
-        },
-        { key: 'delete', label: t.myAds.delete, primary: false, onPress: () => setDeleteId(ad.id) },
-      ]
-    }
-    return [
-      { key: 'edit', label: t.myAds.edit, primary: true },
-      { key: 'promote', label: t.myAds.promote, primary: false },
-      {
-        key: 'markSold',
-        label: t.myAds.markSold,
-        primary: false,
-        onPress: () => setStatus(ad.id, 'Sold'),
-      },
-    ]
   }
 
-  const shown = tab === 'All' ? ads : ads.filter((ad) => ad.status === tab)
-  const isEmpty = shown.length === 0
+  const visibleAds = (ads ?? []).filter((a) => a.status !== 'removed')
+  const totalViews = visibleAds.reduce((sum, a) => sum + a.viewCount, 0)
+  const totalSaves = visibleAds.reduce((sum, a) => sum + a.favoritesCount, 0)
+  const statusToTab: Partial<Record<RealStatus, TabKey>> = {
+    active: 'Active',
+    pending_review: 'Pending',
+    sold: 'Sold',
+  }
+  const shown = tab === 'All' ? visibleAds : visibleAds.filter((a) => statusToTab[a.status] === tab)
+  const isEmpty = ads !== null && shown.length === 0
 
   return (
     <LiveGradientBackground>
@@ -232,231 +374,266 @@ export default function MyAdsScreen() {
           <View style={styles.navSpacer} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          <View style={styles.statsRow}>
-            {(
-              [
-                { value: String(ads.length), label: t.myAds.statTotalAds },
-                { value: '1.9k', label: t.myAds.statViews },
-                { value: '153', label: t.myAds.statSaves },
-              ] as const
-            ).map((stat) => (
-              <GlassSurface
-                key={stat.label}
-                clarity={55}
-                rim={tone.rim}
-                radius={20}
-                style={styles.statTile}
-              >
-                <Text style={[styles.statValue, { fontFamily: fonts.extrabold }]}>
-                  {stat.value}
-                </Text>
-                <Text style={[styles.statLabel, { fontFamily: fonts.bold }]} numberOfLines={1}>
-                  {stat.label}
-                </Text>
-              </GlassSurface>
-            ))}
+        {ads === null ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={neutral.white} />
           </View>
-
-          <GlassSurface clarity={55} radius={18} style={styles.tabsBar}>
-            <View style={styles.tabsRow}>
-              {TAB_KEYS.map((key) => {
-                const active = tab === key
-                const label = tabLabel(key)
-                const pillText = (
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.tabLabel,
-                      {
-                        fontFamily: fonts.bold,
-                        color: active ? neutral.white : 'rgba(255,255,255,0.55)',
-                      },
-                    ]}
-                  >
-                    {label}
+        ) : (
+          <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+            <View style={styles.statsRow}>
+              {(
+                [
+                  { value: String(visibleAds.length), label: t.myAds.statTotalAds },
+                  { value: String(totalViews), label: t.myAds.statViews },
+                  { value: String(totalSaves), label: t.myAds.statSaves },
+                ] as const
+              ).map((stat) => (
+                <GlassSurface
+                  key={stat.label}
+                  clarity={55}
+                  rim={tone.rim}
+                  radius={20}
+                  style={styles.statTile}
+                >
+                  <Text style={[styles.statValue, { fontFamily: fonts.extrabold }]}>
+                    {stat.value}
                   </Text>
-                )
-                return (
-                  <PressableScale
-                    key={key}
-                    onPress={() => setTab(key)}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={label}
-                    style={styles.tabPressable}
-                  >
-                    {active ? (
-                      <LinearGradient
-                        colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
-                        start={GRADIENT_140.start}
-                        end={GRADIENT_140.end}
-                        style={[styles.tabPill, { borderColor: `rgba(${tone.rim},0.42)` }]}
-                      >
-                        {pillText}
-                      </LinearGradient>
-                    ) : (
-                      <View style={[styles.tabPill, { borderColor: 'transparent' }]}>
-                        {pillText}
-                      </View>
-                    )}
-                  </PressableScale>
-                )
-              })}
-            </View>
-          </GlassSurface>
-
-          <View style={styles.listWrap}>
-            {shown.map((ad) => (
-              <GlassSurface key={ad.id} clarity={55} radius={24} style={styles.card}>
-                <GlassSurface clarity={55} rim={tone.rim} radius={18} style={styles.thumb}>
-                  <GemIcon
-                    size={28}
-                    ink="rgba(255,255,255,0.22)"
-                    inkSoft="rgba(255,255,255,0.12)"
-                  />
+                  <Text style={[styles.statLabel, { fontFamily: fonts.bold }]} numberOfLines={1}>
+                    {stat.label}
+                  </Text>
                 </GlassSurface>
-                <View style={styles.cardBody}>
-                  <View style={styles.cardTopRow}>
-                    <View
+              ))}
+            </View>
+
+            <GlassSurface clarity={55} radius={18} style={styles.tabsBar}>
+              <View style={styles.tabsRow}>
+                {(['All', 'Active', 'Pending', 'Sold'] as TabKey[]).map((key) => {
+                  const active = tab === key
+                  const label = tabLabel(key)
+                  const pillText = (
+                    <Text
+                      numberOfLines={1}
                       style={[
-                        styles.statusPill,
+                        styles.tabLabel,
                         {
-                          backgroundColor: `rgba(${tone.rim},0.12)`,
-                          borderColor: `rgba(${tone.rim},0.24)`,
+                          fontFamily: fonts.bold,
+                          color: active ? neutral.white : 'rgba(255,255,255,0.55)',
                         },
                       ]}
                     >
-                      <Text
+                      {label}
+                    </Text>
+                  )
+                  return (
+                    <PressableScale
+                      key={key}
+                      onPress={() => setTab(key)}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={label}
+                      style={styles.tabPressable}
+                    >
+                      {active ? (
+                        <LinearGradient
+                          colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
+                          start={GRADIENT_140.start}
+                          end={GRADIENT_140.end}
+                          style={[styles.tabPill, { borderColor: `rgba(${tone.rim},0.42)` }]}
+                        >
+                          {pillText}
+                        </LinearGradient>
+                      ) : (
+                        <View style={[styles.tabPill, { borderColor: 'transparent' }]}>
+                          {pillText}
+                        </View>
+                      )}
+                    </PressableScale>
+                  )
+                })}
+              </View>
+            </GlassSurface>
+
+            {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
+
+            <View style={styles.listWrap}>
+              {shown.map((ad) => (
+                <GlassSurface key={ad.id} clarity={55} radius={24} style={styles.card}>
+                  <GlassSurface clarity={55} rim={tone.rim} radius={18} style={styles.thumb}>
+                    <GemIcon
+                      size={28}
+                      ink="rgba(255,255,255,0.22)"
+                      inkSoft="rgba(255,255,255,0.12)"
+                    />
+                  </GlassSurface>
+                  <View style={styles.cardBody}>
+                    <View style={styles.cardTopRow}>
+                      <View
                         style={[
-                          styles.statusLabel,
-                          { fontFamily: fonts.extrabold, color: statusColor(ad.status) },
+                          styles.statusPill,
+                          {
+                            backgroundColor: `rgba(${tone.rim},0.12)`,
+                            borderColor: `rgba(${tone.rim},0.24)`,
+                          },
                         ]}
                       >
-                        {statusLabel(ad.status)}
+                        <Text
+                          style={[
+                            styles.statusLabel,
+                            { fontFamily: fonts.extrabold, color: statusColor(ad.status) },
+                          ]}
+                        >
+                          {statusLabel(ad.status)}
+                        </Text>
+                      </View>
+                      <Text style={[styles.postedLabel, { fontFamily: fonts.semibold }]}>
+                        {relativeAgo(ad.publishedAt ?? ad.createdAt)}
                       </Text>
                     </View>
-                    <Text style={[styles.postedLabel, { fontFamily: fonts.semibold }]}>
-                      {ad.posted}
-                    </Text>
-                  </View>
-                  <Text style={[styles.adName, { fontFamily: fonts.extrabold }]} numberOfLines={1}>
-                    {ad.name}
-                  </Text>
-                  <Text style={[styles.adSpec, { fontFamily: fonts.semibold }]} numberOfLines={1}>
-                    {ad.spec}
-                  </Text>
-                  <View style={styles.metaRow}>
                     <Text
-                      style={[styles.adPrice, { fontFamily: fonts.extrabold, color: tone.accent }]}
+                      style={[styles.adName, { fontFamily: fonts.extrabold }]}
+                      numberOfLines={1}
                     >
-                      {formatPrice(ad.priceUsd)}
+                      {ad.title}
                     </Text>
-                    <View style={styles.metaStat}>
-                      <ViewsIcon size={13} />
-                      <Text style={[styles.metaLabel, { fontFamily: fonts.bold }]}>{ad.views}</Text>
+                    <Text style={[styles.adSpec, { fontFamily: fonts.semibold }]} numberOfLines={1}>
+                      {specForDetails(ad.type, ad.details)}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      <Text
+                        style={[
+                          styles.adPrice,
+                          { fontFamily: fonts.extrabold, color: tone.accent },
+                        ]}
+                      >
+                        {formatPrice(ad.priceAmountCents / 100)}
+                      </Text>
+                      <View style={styles.metaStat}>
+                        <ViewsIcon size={13} />
+                        <Text style={[styles.metaLabel, { fontFamily: fonts.bold }]}>
+                          {ad.viewCount}
+                        </Text>
+                      </View>
+                      <View style={styles.metaStat}>
+                        <HeartIcon size={12} color="rgba(255,255,255,0.5)" />
+                        <Text style={[styles.metaLabel, { fontFamily: fonts.bold }]}>
+                          {ad.favoritesCount}
+                        </Text>
+                      </View>
+                      <View style={styles.metaStat}>
+                        <ChatIcon size={12} color="rgba(255,255,255,0.5)" />
+                        <Text style={[styles.metaLabel, { fontFamily: fonts.bold }]}>
+                          {ad.inquiryCount}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.metaStat}>
-                      <HeartIcon size={12} color="rgba(255,255,255,0.5)" />
-                      <Text style={[styles.metaLabel, { fontFamily: fonts.bold }]}>{ad.saves}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.actionsRow}>
-                    {actionsFor(ad).map((action) =>
-                      action.onPress ? (
-                        <PressableScale
-                          key={action.key}
-                          onPress={action.onPress}
-                          accessibilityLabel={action.label}
-                        >
-                          {action.primary ? (
-                            <LinearGradient
-                              colors={[`${tone.cta[0]}0.72)`, `${tone.cta[1]}0.5)`]}
-                              start={GRADIENT_140.start}
-                              end={GRADIENT_140.end}
-                              style={[styles.actionPill, { borderColor: `rgba(${tone.rim},0.45)` }]}
-                            >
-                              <Text style={[styles.actionLabel, { fontFamily: fonts.extrabold }]}>
-                                {action.label}
-                              </Text>
-                            </LinearGradient>
-                          ) : (
-                            <View style={[styles.actionPill, styles.actionPillSecondary]}>
-                              <Text
+                    <View style={styles.actionsRow}>
+                      {actionsFor(ad).map((action) =>
+                        action.onPress ? (
+                          <PressableScale
+                            key={action.key}
+                            onPress={action.onPress}
+                            disabled={busyId === ad.id}
+                            accessibilityLabel={action.label}
+                          >
+                            {action.primary ? (
+                              <LinearGradient
+                                colors={[`${tone.cta[0]}0.72)`, `${tone.cta[1]}0.5)`]}
+                                start={GRADIENT_140.start}
+                                end={GRADIENT_140.end}
                                 style={[
-                                  styles.actionLabel,
-                                  styles.actionLabelSecondary,
-                                  { fontFamily: fonts.extrabold },
+                                  styles.actionPill,
+                                  { borderColor: `rgba(${tone.rim},0.45)` },
                                 ]}
                               >
-                                {action.label}
-                              </Text>
-                            </View>
-                          )}
-                        </PressableScale>
-                      ) : (
-                        <View
-                          key={action.key}
-                          style={[styles.actionPill, styles.actionPillSecondary]}
-                        >
-                          <Text
-                            style={[
-                              styles.actionLabel,
-                              styles.actionLabelSecondary,
-                              { fontFamily: fonts.extrabold },
-                            ]}
+                                <Text style={[styles.actionLabel, { fontFamily: fonts.extrabold }]}>
+                                  {action.label}
+                                </Text>
+                              </LinearGradient>
+                            ) : (
+                              <View style={[styles.actionPill, styles.actionPillSecondary]}>
+                                <Text
+                                  style={[
+                                    styles.actionLabel,
+                                    styles.actionLabelSecondary,
+                                    { fontFamily: fonts.extrabold },
+                                  ]}
+                                >
+                                  {action.label}
+                                </Text>
+                              </View>
+                            )}
+                          </PressableScale>
+                        ) : (
+                          <View
+                            key={action.key}
+                            style={[styles.actionPill, styles.actionPillSecondary]}
                           >
-                            {action.label}
-                          </Text>
-                        </View>
-                      ),
-                    )}
+                            <Text
+                              style={[
+                                styles.actionLabel,
+                                styles.actionLabelSecondary,
+                                { fontFamily: fonts.extrabold },
+                              ]}
+                            >
+                              {action.label}
+                            </Text>
+                          </View>
+                        ),
+                      )}
+                    </View>
                   </View>
+                </GlassSurface>
+              ))}
+            </View>
+
+            {isEmpty ? (
+              <GlassSurface clarity={55} radius={24} style={styles.emptyPanel}>
+                <View
+                  style={[
+                    styles.emptyIconTile,
+                    {
+                      backgroundColor: `rgba(${tone.rim},0.13)`,
+                      borderColor: `rgba(${tone.rim},0.26)`,
+                    },
+                  ]}
+                >
+                  <GemIcon size={26} ink={tone.ink} inkSoft={tone.ink} strokeWidth={1.5} />
                 </View>
+                <Text style={[styles.emptyTitle, { fontFamily: fonts.extrabold }]}>
+                  {t.myAds.emptyTitle}
+                </Text>
+                <Text style={[styles.emptySubtitle, { fontFamily: fonts.medium }]}>
+                  {t.myAds.emptySubtitle}
+                </Text>
               </GlassSurface>
-            ))}
-          </View>
+            ) : null}
 
-          {isEmpty ? (
-            <GlassSurface clarity={55} radius={24} style={styles.emptyPanel}>
-              <View
-                style={[
-                  styles.emptyIconTile,
-                  {
-                    backgroundColor: `rgba(${tone.rim},0.13)`,
-                    borderColor: `rgba(${tone.rim},0.26)`,
-                  },
-                ]}
-              >
-                <GemIcon size={26} ink={tone.ink} inkSoft={tone.ink} strokeWidth={1.5} />
-              </View>
-              <Text style={[styles.emptyTitle, { fontFamily: fonts.extrabold }]}>
-                {t.myAds.emptyTitle}
-              </Text>
-              <Text style={[styles.emptySubtitle, { fontFamily: fonts.medium }]}>
-                {t.myAds.emptySubtitle}
-              </Text>
-            </GlassSurface>
-          ) : null}
-
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+        )}
 
         <Button
           label={t.myAds.postNewAd}
           icon={<PlusIcon size={15} color={neutral.white} strokeWidth={2.4} />}
+          onPress={() => router.push('/post-ad')}
           style={styles.postButton}
         />
 
         <ConfirmDialog
-          visible={deleteId !== null}
-          title={t.myAds.deleteConfirmTitle}
-          message={t.myAds.deleteConfirmMessage}
-          confirmLabel={t.myAds.delete}
+          visible={deleteTarget !== null}
+          title={
+            deleteTarget?.kind === 'hard' ? t.myAds.deleteConfirmTitle : t.myAds.removeConfirmTitle
+          }
+          message={
+            deleteTarget?.kind === 'hard'
+              ? t.myAds.deleteConfirmMessage
+              : t.myAds.removeConfirmMessage
+          }
+          confirmLabel={deleteTarget?.kind === 'hard' ? t.myAds.delete : t.myAds.remove}
           cancelLabel={t.common.cancel}
           destructive
-          onConfirm={confirmDelete}
-          onCancel={() => setDeleteId(null)}
+          onConfirm={confirmDeleteOrRemove}
+          onCancel={() => setDeleteTarget(null)}
         />
       </SafeAreaView>
     </LiveGradientBackground>
@@ -483,11 +660,14 @@ const styles = StyleSheet.create({
     color: neutral.white,
   },
   // Balances the back button's width so the title stays visually centered
-  // — same technique as all-listings.tsx's own nav row. The mockup's own
-  // "+" nav button was dropped per product direction (no Post Ad screen
-  // exists yet — see the file-level comment).
+  // — same technique as all-listings.tsx's own nav row.
   navSpacer: {
     width: 40,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   body: {
     paddingHorizontal: 22,
@@ -537,6 +717,12 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 12,
+  },
+  actionError: {
+    marginTop: 12,
+    textAlign: 'center',
+    fontSize: 12,
+    color: neutral.danger.textStrong,
   },
   listWrap: {
     gap: 12,
@@ -589,7 +775,8 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    flexWrap: 'wrap',
+    gap: 10,
     marginTop: 2,
   },
   adPrice: {

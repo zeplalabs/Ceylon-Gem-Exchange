@@ -1,16 +1,18 @@
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GlassSurface, IconButton, ListingCard } from '../components'
 import { ChevronLeftIcon, QuerySearchIcon } from '../components/icons'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useToggleFavorite } from '../hooks/useToggleFavorite'
 import { useTranslation } from '../hooks/useTranslation'
+import { featuredListings, type Listing } from '../lib/listings'
+import { useFavorites } from '../providers/FavoritesProvider'
 import { useGemTone } from '../providers/GemToneProvider'
-import { defaultLikedIds, featuredListings, type Listing } from '../lib/listings'
 
 const PAD = 22
 const GRID_GAP = 12
@@ -31,7 +33,8 @@ export default function SearchResultsScreen() {
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
   const { name, ids } = useLocalSearchParams<{ name?: string; ids?: string }>()
-  const [liked, setLiked] = useState<Set<string>>(defaultLikedIds)
+  const { likedIds } = useFavorites()
+  const toggleLike = useToggleFavorite()
 
   function goBack() {
     if (router.canGoBack()) {
@@ -40,15 +43,6 @@ export default function SearchResultsScreen() {
       router.replace('/saved-searches')
     }
   }
-
-  const toggleLike = useCallback((id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
 
   const matchIds = new Set((ids ?? '').split(',').filter(Boolean))
   const results = featuredListings.filter((item) => matchIds.has(item.id))
@@ -66,13 +60,13 @@ export default function SearchResultsScreen() {
           spec={item.spec}
           priceUsd={item.priceUsd}
           badge={item.badge}
-          liked={liked.has(item.id)}
+          liked={likedIds.has(item.id)}
           onToggleLike={() => toggleLike(item.id)}
           onPress={() => router.push(`/listing/${item.id}`)}
         />
       </View>
     ),
-    [liked, toggleLike, router],
+    [likedIds, toggleLike, router],
   )
 
   return (

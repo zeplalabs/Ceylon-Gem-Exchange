@@ -1,36 +1,129 @@
+import { useAuth } from '@clerk/expo'
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import { useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GlassSurface, IconButton, ListingCard } from '../components'
 import { ChevronLeftIcon, HeartIcon } from '../components/icons'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useToggleFavorite } from '../hooks/useToggleFavorite'
 import { useTranslation } from '../hooks/useTranslation'
+import { API_URL } from '../lib/apiUrl'
+import { featuredListings } from '../lib/listings'
+import { specForDetails, type ListingSpecDetails } from '../lib/listingSpec'
+import { useCurrency } from '../providers/CurrencyProvider'
+import { useFavorites } from '../providers/FavoritesProvider'
 import { useGemTone } from '../providers/GemToneProvider'
-import { defaultLikedIds, featuredListings, type Listing } from '../lib/listings'
 
 const PAD = 22
 const GRID_GAP = 12
 
-// Reached from Profile's "Favourites" row. Per explicit product direction,
-// this is the same "home page item view" as app/all-listings.tsx — same
-// ListingCard grid, same component — just pre-filtered to the liked set
-// instead of showing everything. `liked` starts from `defaultLikedIds`
-// (same demo seed Home/All Listings use) and is this screen's own local
-// copy — no shared store exists yet (see all-listings.tsx's own comment),
-// so un-liking here doesn't un-like it on Home, and vice versa. Unliking a
-// card here removes it from the list outright, which is the point of this
-// screen (unlike Home/All Listings, where unliking just dims the heart).
+interface RealFavoriteListing {
+  id: string
+  type: 'gem' | 'equipment'
+  title: string
+  status: 'draft' | 'pending_review' | 'active' | 'paused' | 'expired' | 'sold' | 'removed'
+  priceAmountCents: number
+  priceCurrency: string
+  details: ListingSpecDetails | null
+}
+
+// A card shape every source (real API row or static fixture) gets mapped
+// into, so `renderItem` below never has to branch — identical to
+// `Listing` (lib/listings.ts) by design.
+interface FavouriteCard {
+  id: string
+  name: string
+  spec: string
+  priceUsd: number
+  badge: string
+}
+
+function statusBadge(status: RealFavoriteListing['status']) {
+  if (status === 'sold') return 'Sold'
+  if (status === 'expired') return 'Expired'
+  if (status === 'paused') return 'Paused'
+  return null
+}
+
+function realToCard(
+  listing: RealFavoriteListing,
+  usdRate: (currencyCode: string) => number,
+): FavouriteCard {
+  const typeBadge =
+    listing.type === 'gem'
+      ? (listing.details?.species ?? 'Gem')
+      : (listing.details?.equipmentType ?? 'Equipment')
+  return {
+    id: listing.id,
+    name: listing.title,
+    spec: specForDetails(listing.type, listing.details),
+    priceUsd: listing.priceAmountCents / 100 / usdRate(listing.priceCurrency),
+    badge: statusBadge(listing.status) ?? typeBadge,
+  }
+}
+
+// Reached from Profile's "Favourites" row (and Home/Chats/Profile's
+// BottomNavBar "Saved" tab). Per explicit product direction, this is the
+// same "home page item view" as app/all-listings.tsx — same ListingCard
+// grid, same component. Real favorites now come from `GET /favorites`
+// (joined with gem/equipment details, same shape `GET /listings/mine`
+// uses — see favorites.controller.ts); everything the shared
+// FavoritesProvider holds that *isn't* a real listing id (i.e. a static
+// fixture card liked on Home/All Listings/Search Results/Listing Detail,
+// none of which have a real backend row to persist to) is rendered
+// alongside it via `getListingDetail`'s fixture catalog, so "every heart
+// tap, anywhere" ends up here regardless of which kind of card it was.
+// Unliking a card here removes it from the list outright (unlike Home/All
+// Listings, where unliking just dims the heart) — for a real listing that
+// also fires the real `DELETE /listings/:id/favorite` (via
+// useToggleFavorite); for a fixture one it's local-only, same as it always
+// was.
 export default function FavouritesScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
-  const [liked, setLiked] = useState<Set<string>>(defaultLikedIds)
+  const { isSignedIn, getToken } = useAuth()
+  const { likedIds } = useFavorites()
+  const { currencies } = useCurrency()
+  const toggleFavorite = useToggleFavorite()
+  const [realFavorites, setRealFavorites] = useState<RealFavoriteListing[]>([])
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setRealFavorites([])
+      return
+    }
+    let cancelled = false
+    async function load() {
+      try {
+        const token = await getToken()
+        if (!token || cancelled) return
+        const res = await fetch(`${API_URL}/favorites`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok || cancelled) return
+        setRealFavorites((await res.json()) as RealFavoriteListing[])
+      } catch {
+        // Leave whatever's already shown — a pull-to-refresh equivalent
+        // isn't wired here yet, so the next visit to this screen retries.
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn])
+
+  function usdRate(currencyCode: string) {
+    return currencies?.find((c) => c.code === currencyCode)?.usdRate ?? 1
+  }
 
   function goBack() {
     if (router.canGoBack()) {
@@ -40,18 +133,28 @@ export default function FavouritesScreen() {
     }
   }
 
-  const toggleLike = useCallback((id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-  }, [])
+  const handleUnlike = useCallback(
+    (id: string) => {
+      void toggleFavorite(id)
+      setRealFavorites((prev) => prev.filter((item) => item.id !== id))
+    },
+    [toggleFavorite],
+  )
 
-  const favourited = featuredListings.filter((item) => liked.has(item.id))
+  const fixtureCards: FavouriteCard[] = featuredListings
+    .filter((item) => likedIds.has(item.id))
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      spec: item.spec,
+      badge: item.badge,
+      priceUsd: item.priceUsd,
+    }))
+  const realCards = realFavorites.map((item) => realToCard(item, usdRate))
+  const favourited = [...realCards, ...fixtureCards]
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<Listing>) => (
+    ({ item, index }: ListRenderItemInfo<FavouriteCard>) => (
       <View
         style={[
           styles.gridItem,
@@ -64,12 +167,12 @@ export default function FavouritesScreen() {
           priceUsd={item.priceUsd}
           badge={item.badge}
           liked
-          onToggleLike={() => toggleLike(item.id)}
+          onToggleLike={() => handleUnlike(item.id)}
           onPress={() => router.push(`/listing/${item.id}`)}
         />
       </View>
     ),
-    [toggleLike, router],
+    [handleUnlike, router],
   )
 
   return (

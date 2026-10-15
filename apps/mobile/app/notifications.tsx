@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/expo'
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
@@ -17,29 +18,46 @@ import { GRADIENT_140 } from '../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useTranslation } from '../hooks/useTranslation'
-import { NOTIFICATIONS, type NotificationItem, type NotificationKind } from '../lib/notifications'
+import { API_URL } from '../lib/apiUrl'
+import {
+  useNotifications,
+  type NotificationKind,
+  type RealNotification,
+} from '../providers/NotificationsProvider'
 import { useGemTone } from '../providers/GemToneProvider'
-import { useNotifications } from '../providers/NotificationsProvider'
 
 type TabKey = 'all' | NotificationKind
+type WhenGroup = 'TODAY' | 'EARLIER'
 
-const TAB_KEYS: TabKey[] = ['all', 'enquiries', 'priceDrops', 'newListings']
-const GROUP_ORDER: NotificationItem['when'][] = ['TODAY', 'EARLIER']
+const TAB_KEYS: TabKey[] = ['all', 'enquiries', 'price_drops', 'new_listings']
+const GROUP_ORDER: WhenGroup[] = ['TODAY', 'EARLIER']
+
+function isSameCalendarDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
 
 // Reached by tapping the bell icon on Home. Ports "Ceylon Gem Exchange
 // Notifications.dc.html" — filter tabs (with per-tab unread counts) over a
-// TODAY/EARLIER-grouped list, each row a glass card with an icon or photo
-// placeholder, title/body/time, and an unread dot. Read state lives in
-// NotificationsProvider now (shared with Home's bell dot — see that
-// provider's own comment), not a local `readIds` here; this screen just
-// reads/mutates it via `useNotifications()`.
+// TODAY/EARLIER-grouped list, each row a glass card with an icon, title/
+// body/time, and an unread dot. Real data now (`GET /me/notifications`,
+// apps/api/src/notifications/notifications.controller.ts) — replaces the
+// static apps/mobile/lib/notifications.ts seed this screen launched with.
+// Read state lives in NotificationsProvider (shared with Home's bell dot)
+// for instant UI feedback, but this screen is the one that actually calls
+// the `PATCH` endpoints that make a read stick server-side — the provider
+// itself can't (it's mounted outside ClerkProvider, see its own comment).
 export default function NotificationsScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
+  const { getToken } = useAuth()
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
-  const { isUnread, markRead, markAllRead } = useNotifications()
+  const { notifications, isUnread, markReadLocally, markAllReadLocally } = useNotifications()
 
   const [tab, setTab] = useState<TabKey>('all')
 
@@ -57,22 +75,69 @@ export default function NotificationsScreen() {
         return t.notifications.tabAll
       case 'enquiries':
         return t.notifications.tabEnquiries
-      case 'priceDrops':
+      case 'price_drops':
         return t.notifications.tabPriceDrops
-      case 'newListings':
+      case 'new_listings':
         return t.notifications.tabNewListings
     }
   }
 
+  function relativeTime(iso: string) {
+    const date = new Date(iso)
+    const diffMin = Math.floor((Date.now() - date.getTime()) / 60_000)
+    if (diffMin < 1) return t.notifications.justNow
+    if (diffMin < 60) return t.notifications.minutesAgo.replace('{{count}}', String(diffMin))
+    const diffHr = Math.floor(diffMin / 60)
+    if (diffHr < 24) return t.notifications.hoursAgo.replace('{{count}}', String(diffHr))
+    if (isSameCalendarDay(new Date(Date.now() - 86_400_000), date)) return t.notifications.yesterday
+    const diffDay = Math.floor(diffHr / 24)
+    return t.notifications.daysAgo.replace('{{count}}', String(diffDay))
+  }
+
+  async function handleMarkRead(item: RealNotification) {
+    if (!isUnread(item)) return
+    markReadLocally(item.id)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await fetch(`${API_URL}/me/notifications/${item.id}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch {
+      // Local state already shows it read — a sync failure here just means
+      // it could reappear as unread next time the list is refetched.
+    }
+  }
+
+  async function handleMarkAllRead() {
+    markAllReadLocally()
+    try {
+      const token = await getToken()
+      if (!token) return
+      await fetch(`${API_URL}/me/notifications/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch {
+      // Same best-effort reasoning as handleMarkRead above.
+    }
+  }
+
   function countFor(key: TabKey) {
-    const items = key === 'all' ? NOTIFICATIONS : NOTIFICATIONS.filter((n) => n.kind === key)
+    const items = key === 'all' ? notifications : notifications.filter((n) => n.kind === key)
     return items.filter(isUnread).length
   }
 
-  const shown = tab === 'all' ? NOTIFICATIONS : NOTIFICATIONS.filter((n) => n.kind === tab)
+  const shown = tab === 'all' ? notifications : notifications.filter((n) => n.kind === tab)
+  const now = new Date()
   const groups = GROUP_ORDER.map((label) => ({
     label,
-    items: shown.filter((n) => n.when === label),
+    items: shown.filter((n) =>
+      label === 'TODAY'
+        ? isSameCalendarDay(new Date(n.createdAt), now)
+        : !isSameCalendarDay(new Date(n.createdAt), now),
+    ),
   })).filter((grp) => grp.items.length > 0)
   const isEmpty = shown.length === 0
 
@@ -93,7 +158,7 @@ export default function NotificationsScreen() {
           <IconButton
             icon={<DoubleCheckIcon size={18} color={tone.accent} />}
             accessibilityLabel={t.notifications.markAllRead}
-            onPress={markAllRead}
+            onPress={handleMarkAllRead}
             size={40}
             radius={14}
           />
@@ -181,7 +246,7 @@ export default function NotificationsScreen() {
                   return (
                     <PressableScale
                       key={n.id}
-                      onPress={() => markRead(n.id)}
+                      onPress={() => handleMarkRead(n)}
                       accessibilityLabel={n.title}
                       style={[
                         styles.row,
@@ -189,38 +254,23 @@ export default function NotificationsScreen() {
                         unread ? { backgroundColor: `rgba(${tone.rim},0.07)` } : null,
                       ]}
                     >
-                      {n.thumb ? (
-                        <GlassSurface clarity={55} rim={tone.rim} radius={14} style={styles.avatar}>
-                          <GemIcon
-                            size={18}
-                            ink="rgba(255,255,255,0.22)"
-                            inkSoft="rgba(255,255,255,0.12)"
-                          />
-                        </GlassSurface>
-                      ) : (
-                        <View
-                          style={[
-                            styles.iconTile,
-                            {
-                              backgroundColor: `rgba(${tone.rim},0.13)`,
-                              borderColor: `rgba(${tone.rim},0.26)`,
-                            },
-                          ]}
-                        >
-                          {n.icon === 'chat' ? (
-                            <ChatIcon size={17} color={tone.ink} strokeWidth={1.8} />
-                          ) : n.icon === 'gem' ? (
-                            <GemIcon
-                              size={17}
-                              ink={tone.ink}
-                              inkSoft={tone.ink}
-                              strokeWidth={1.8}
-                            />
-                          ) : (
-                            <BagIcon size={17} color={tone.ink} strokeWidth={1.8} />
-                          )}
-                        </View>
-                      )}
+                      <View
+                        style={[
+                          styles.iconTile,
+                          {
+                            backgroundColor: `rgba(${tone.rim},0.13)`,
+                            borderColor: `rgba(${tone.rim},0.26)`,
+                          },
+                        ]}
+                      >
+                        {n.kind === 'enquiries' ? (
+                          <ChatIcon size={17} color={tone.ink} strokeWidth={1.8} />
+                        ) : n.kind === 'new_listings' ? (
+                          <GemIcon size={17} ink={tone.ink} inkSoft={tone.ink} strokeWidth={1.8} />
+                        ) : (
+                          <BagIcon size={17} color={tone.ink} strokeWidth={1.8} />
+                        )}
+                      </View>
                       <View style={styles.textCol}>
                         <Text
                           style={[
@@ -233,7 +283,9 @@ export default function NotificationsScreen() {
                         <Text style={[styles.itemBody, { fontFamily: fonts.medium }]}>
                           {n.body}
                         </Text>
-                        <Text style={[styles.itemTime, { fontFamily: fonts.bold }]}>{n.time}</Text>
+                        <Text style={[styles.itemTime, { fontFamily: fonts.bold }]}>
+                          {relativeTime(n.createdAt)}
+                        </Text>
                       </View>
                       {unread ? (
                         <View
@@ -372,13 +424,6 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  avatar: {
-    flexShrink: 0,
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   iconTile: {
     flexShrink: 0,

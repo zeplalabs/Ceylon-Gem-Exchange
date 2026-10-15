@@ -4,10 +4,21 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './auth/auth.module'
+import { BlockingModule } from './blocking/blocking.module'
 import { CurrenciesModule } from './currencies/currencies.module'
+import { FavoritesModule } from './favorites/favorites.module'
 import { FiltersModule } from './filters/filters.module'
 import { HealthModule } from './health/health.module'
+import { InquiriesModule } from './inquiries/inquiries.module'
 import { LanguagesModule } from './languages/languages.module'
+import { ListingReportsModule } from './listing-reports/listing-reports.module'
+import { ListingsModule } from './listings/listings.module'
+import { MediaModule } from './media/media.module'
+import { NotificationsModule } from './notifications/notifications.module'
+import { PhoneRevealModule } from './phone-reveal/phone-reveal.module'
+import { SavedSearchesModule } from './saved-searches/saved-searches.module'
+import { SearchModule } from './search/search.module'
+import { SellersModule } from './sellers/sellers.module'
 import { WebhooksModule } from './webhooks/webhooks.module'
 
 @Module({
@@ -25,6 +36,17 @@ import { WebhooksModule } from './webhooks/webhooks.module'
     FiltersModule,
     LanguagesModule,
     CurrenciesModule,
+    ListingsModule,
+    MediaModule,
+    SearchModule,
+    InquiriesModule,
+    PhoneRevealModule,
+    FavoritesModule,
+    SavedSearchesModule,
+    BlockingModule,
+    ListingReportsModule,
+    NotificationsModule,
+    SellersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -34,13 +34,14 @@ import {
   ShieldCheckIcon,
   WhatsAppIcon,
 } from '../../components/icons'
-import { GRADIENT_140 } from '../../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../../hooks/useFontFamily'
+import { useToggleFavorite } from '../../hooks/useToggleFavorite'
 import { useTranslation } from '../../hooks/useTranslation'
-import { defaultLikedIds, featuredListings, getListingDetail } from '../../lib/listings'
+import { featuredListings, getListingDetail } from '../../lib/listings'
 import { getListingMedia } from '../../lib/media'
 import { useCurrency } from '../../providers/CurrencyProvider'
+import { useFavorites } from '../../providers/FavoritesProvider'
 import { useGemTone } from '../../providers/GemToneProvider'
 
 type Tab = 'about' | 'specs' | 'seller'
@@ -112,9 +113,13 @@ function HeroVideoSlide({
 // HeroVideoSlide above) standing in for actual seller-uploaded video.
 // `@nandorojo/galeria` (CLAUDE.md's mandated pinch-zoom/pan-to-close
 // viewer) stays deferred for photos until there's a real one worth
-// zooming into. The favorite toggle is local-only, like Home's own
-// `liked` state (no shared store exists yet), so liking here doesn't
-// sync back to Home's grid.
+// zooming into. The favorite toggle goes through the shared
+// FavoritesProvider now, so liking a (static-fixture) listing here shows
+// up on the real Favourites screen too — though `listing` itself is only
+// ever the static fixture lookup below; a real UUID id still falls
+// through to the "not found" branch, same pre-existing gap docs/
+// remaining-work.md already tracks as Listing Detail's own real-data
+// wiring, out of scope here.
 export default function ListingDetailScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
@@ -134,7 +139,9 @@ export default function ListingDetailScreen() {
 
   const [activeImage, setActiveImage] = useState(0)
   const [tab, setTab] = useState<Tab>('about')
-  const [fav, setFav] = useState(() => defaultLikedIds.has(id))
+  const { likedIds } = useFavorites()
+  const toggleFavorite = useToggleFavorite()
+  const fav = likedIds.has(id)
   const heroScrollRef = useRef<ScrollView>(null)
 
   function goToImage(i: number) {
@@ -203,7 +210,7 @@ export default function ListingDetailScreen() {
             {listing.lotNumber}
           </Text>
           <PressableScale
-            onPress={() => setFav((v) => !v)}
+            onPress={() => toggleFavorite(id)}
             accessibilityRole="button"
             accessibilityLabel={fav ? `Unlike ${listing.name}` : `Like ${listing.name}`}
             accessibilityState={{ selected: fav }}
@@ -439,7 +446,11 @@ export default function ListingDetailScreen() {
             ) : null}
 
             {tab === 'seller' ? (
-              <View style={styles.sellerPanelRow}>
+              <PressableScale
+                onPress={() => router.push(`/seller/${listing.sellerId}`)}
+                accessibilityLabel={`${listing.sellerName}, ${t.sellerProfile.title}`}
+                style={styles.sellerPanelRow}
+              >
                 <GlassSurface clarity={55} rim={tone.rim} radius={23} style={styles.sellerAvatar}>
                   <PersonIcon size={22} color={iconSoft} strokeWidth={1.6} />
                 </GlassSurface>
@@ -451,20 +462,8 @@ export default function ListingDetailScreen() {
                     {listing.sellerMeta}
                   </Text>
                 </View>
-                <PressableScale
-                  onPress={() => router.push(`/chat/${listing.id}`)}
-                  accessibilityLabel={t.listingDetail.chat}
-                >
-                  <LinearGradient
-                    colors={[`${tone.cta[0]}0.5)`, `${tone.cta[1]}0.32)`]}
-                    start={GRADIENT_140.start}
-                    end={GRADIENT_140.end}
-                    style={[styles.sellerChatBtn, { borderColor: `rgba(${tone.rim},0.42)` }]}
-                  >
-                    <ChatIcon size={16} />
-                  </LinearGradient>
-                </PressableScale>
-              </View>
+                <ChevronRightIcon color="rgba(255,255,255,0.5)" />
+              </PressableScale>
             ) : null}
           </GlassSurface>
 
@@ -831,14 +830,6 @@ const styles = StyleSheet.create({
   sellerPanelMeta: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.5)',
-  },
-  sellerChatBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   certRow: {
     flexDirection: 'row',

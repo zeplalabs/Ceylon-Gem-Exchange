@@ -1,14 +1,16 @@
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import { useRouter } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { IconButton, ListingCard } from '../components'
 import { ChevronLeftIcon } from '../components/icons'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useToggleFavorite } from '../hooks/useToggleFavorite'
 import { useTranslation } from '../hooks/useTranslation'
-import { defaultLikedIds, featuredListings, type Listing } from '../lib/listings'
+import { featuredListings, type Listing } from '../lib/listings'
+import { useFavorites } from '../providers/FavoritesProvider'
 
 const PAD = 22
 const GRID_GAP = 12
@@ -20,15 +22,15 @@ const GRID_GAP = 12
 // filter chrome above it. Keeps the heart/like toggle Home's own cards
 // have (unlike Listing Detail's "similar listings" screen, whose mockup
 // gives that specific grid no like affordance — this one is just "more of
-// Home's own list", so it should behave like Home's own list). `liked`
-// state is local-only and doesn't sync with Home's own `liked` state,
-// same caveat as every other local-only like toggle in this app (see
-// Home's own comment) — no shared store exists yet.
+// Home's own list", so it should behave like Home's own list). Likes now
+// go through the shared FavoritesProvider (see that provider's own
+// comment), so this screen's hearts stay in sync with Home's.
 export default function AllListingsScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
-  const [liked, setLiked] = useState<Set<string>>(defaultLikedIds)
+  const { likedIds } = useFavorites()
+  const toggleLike = useToggleFavorite()
 
   function goBack() {
     if (router.canGoBack()) {
@@ -37,15 +39,6 @@ export default function AllListingsScreen() {
       router.replace('/')
     }
   }
-
-  const toggleLike = useCallback((id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<Listing>) => (
@@ -60,13 +53,13 @@ export default function AllListingsScreen() {
           spec={item.spec}
           priceUsd={item.priceUsd}
           badge={item.badge}
-          liked={liked.has(item.id)}
+          liked={likedIds.has(item.id)}
           onToggleLike={() => toggleLike(item.id)}
           onPress={() => router.push(`/listing/${item.id}`)}
         />
       </View>
     ),
-    [liked, toggleLike, router],
+    [likedIds, toggleLike, router],
   )
 
   return (

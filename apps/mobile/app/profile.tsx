@@ -27,7 +27,6 @@ import {
   CurrencyIcon,
   DigestIcon,
   DocumentIcon,
-  ExploreTabIcon,
   FaqIcon,
   FavouritesIcon,
   GalleryIcon,
@@ -468,6 +467,7 @@ export default function ProfileScreen() {
       key: 'myProfile',
       name: t.profile.myProfile,
       icon: <ProfileTabIcon size={16} color={rowIconColor} />,
+      onPress: () => router.push('/edit-profile'),
     },
     {
       key: 'savedSearches',
@@ -827,7 +827,7 @@ export default function ProfileScreen() {
               />
             </View>
 
-            <View style={styles.settingsRow}>
+            <View style={[styles.settingsRow, styles.settingsRowDivider]}>
               <View style={[styles.settingsIconTile, settingsTintStyle]}>
                 <MonitorIcon size={17} color={tone.ink} strokeWidth={1.8} />
               </View>
@@ -842,6 +842,27 @@ export default function ProfileScreen() {
               </Text>
               <ChevronRightIcon color="rgba(255,255,255,0.5)" />
             </View>
+
+            <PressableScale
+              onPress={() => router.push('/delete-account')}
+              accessibilityLabel={t.accountSettings.deleteAccount}
+              style={styles.settingsRow}
+            >
+              <View style={[styles.settingsIconTile, styles.settingsIconTileDanger]}>
+                <TrashIcon size={17} color={neutral.danger.text} strokeWidth={1.8} />
+              </View>
+              <Text
+                style={[
+                  styles.settingsRowTitle,
+                  styles.settingsFlexGrow,
+                  styles.rowLabelDanger,
+                  { fontFamily: fonts.bold },
+                ]}
+              >
+                {t.accountSettings.deleteAccount}
+              </Text>
+              <ChevronRightIcon color="rgba(255,255,255,0.5)" />
+            </PressableScale>
           </GlassSurface>
 
           <ProfileRowGroup label={t.profile.groupSupport} rows={supportRows} />
@@ -856,14 +877,16 @@ export default function ProfileScreen() {
           value="profile"
           onChange={(value) => {
             if (value === 'home') router.push('/home')
+            if (value === 'chat') router.push('/chats')
+            if (value === 'saved') router.push('/favourites')
           }}
           style={styles.floatingNav}
           items={[
             { value: 'home', label: 'Home', icon: (color) => <HomeTabIcon color={color} /> },
             {
-              value: 'explore',
-              label: 'Explore',
-              icon: (color) => <ExploreTabIcon color={color} />,
+              value: 'chat',
+              label: 'Chat',
+              icon: (color) => <ChatIcon size={20} color={color} strokeWidth={1.9} />,
             },
             { value: 'bids', label: 'Bids', icon: (color) => <BidsTabIcon color={color} /> },
             {
@@ -1249,6 +1272,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  settingsIconTileDanger: {
+    backgroundColor: neutral.danger.surface,
+    borderColor: neutral.danger.border,
   },
   settingsRowText: {
     flex: 1,

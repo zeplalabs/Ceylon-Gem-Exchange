@@ -30,8 +30,11 @@ import { LogBox } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useFontFamily } from '../hooks/useFontFamily'
 import { useSyncDeviceLocale } from '../hooks/useSyncDeviceLocale'
+import { useSyncFavorites } from '../hooks/useSyncFavorites'
+import { useSyncNotifications } from '../hooks/useSyncNotifications'
 import { useTranslation } from '../hooks/useTranslation'
 import { CurrencyProvider } from '../providers/CurrencyProvider'
+import { FavoritesProvider } from '../providers/FavoritesProvider'
 import { GemToneProvider, useGemTone } from '../providers/GemToneProvider'
 import { LiveGradientProvider } from '../providers/LiveGradientProvider'
 import { LocaleProvider } from '../providers/LocaleProvider'
@@ -64,6 +67,8 @@ if (!publishableKey) {
 // and GemToneProvider (useGemTone) subtrees.
 function AppLayout() {
   useSyncDeviceLocale()
+  useSyncNotifications()
+  useSyncFavorites()
   const fonts = useFontFamily()
   const t = useTranslation()
   const { gemTone } = useGemTone()
@@ -135,9 +140,11 @@ export default function RootLayout() {
           <CurrencyProvider>
             <LocaleProvider>
               <NotificationsProvider>
-                <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-                  <AppLayout />
-                </ClerkProvider>
+                <FavoritesProvider>
+                  <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+                    <AppLayout />
+                  </ClerkProvider>
+                </FavoritesProvider>
               </NotificationsProvider>
             </LocaleProvider>
           </CurrencyProvider>

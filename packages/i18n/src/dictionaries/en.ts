@@ -113,6 +113,10 @@ export interface Dictionary {
       statusVerified: string
       submit: string
       verified: string
+      /** Shown instead of the code-entry UI when the account has no phone number at all yet. */
+      noPhoneTitle: string
+      noPhoneSubtitle: string
+      addPhoneButton: string
     }
     verifyEmail: {
       /** Nav-row header title — "Verify Email", distinct from the body `title` below. */
@@ -193,6 +197,50 @@ export interface Dictionary {
     quickRequestVideo: string
     quickNegotiable: string
     seen: string
+    moreOptions: string
+    reportTitle: string
+    reportReasonCounterfeit: string
+    reportReasonMisleading: string
+    reportReasonProhibitedItem: string
+    reportReasonScam: string
+    reportReasonOther: string
+    reportDetailsPlaceholder: string
+    reportSubmit: string
+    reportSuccessTitle: string
+    reportSuccessMessage: string
+    unblockSeller: string
+    blockConfirmTitle: string
+    blockConfirmMessage: string
+    blockConfirmButton: string
+    unblockConfirmTitle: string
+    unblockConfirmMessage: string
+    unblockConfirmButton: string
+  }
+  sellerProfile: {
+    title: string
+    favouriteSeller: string
+    shareLabel: string
+    coverPhotoLabel: string
+    logoLabel: string
+    galleryTitle: string
+    chatWithSeller: string
+    chat: string
+    directions: string
+    noListings: string
+    searchInPrefix: string
+    allChipLabel: string
+    stonesSuffix: string
+    soldSuffix: string
+    reviewsSuffix: string
+    sortNewest: string
+  }
+  chats: {
+    title: string
+    searchPlaceholder: string
+    /** Prepended to a preview line for the caller's own last message — contains a trailing ": " already, e.g. "You: ". */
+    youPrefix: string
+    emptyTitle: string
+    emptySubtitle: string
   }
   gallery: {
     photoLabel: string
@@ -200,8 +248,12 @@ export interface Dictionary {
   }
   postAd: {
     title: string
+    editTitle: string
     step1Title: string
     step1Hint: string
+    step1HintEquipment: string
+    typeGemLabel: string
+    typeEquipmentLabel: string
     step2Title: string
     step2Hint: string
     coverPhotoBadge: string
@@ -209,7 +261,9 @@ export interface Dictionary {
     addPhotoAccessibilityLabel: string
     addVideo: string
     photoTip: string
+    editPhotosNotice: string
     step3Title: string
+    step3TitleEquipment: string
     step3Hint: string
     titleLabel: string
     titlePlaceholder: string
@@ -223,6 +277,17 @@ export interface Dictionary {
     treatmentGroupLabel: string
     certificateGroupLabel: string
     districtGroupLabel: string
+    brandLabel: string
+    brandPlaceholder: string
+    modelLabel: string
+    modelPlaceholder: string
+    conditionGroupLabel: string
+    yearLabel: string
+    yearPlaceholder: string
+    specificationsLabel: string
+    specificationsPlaceholder: string
+    warrantyLabel: string
+    warrantyPlaceholder: string
     descriptionLabel: string
     descriptionPlaceholder: string
     negotiableTitle: string
@@ -235,6 +300,10 @@ export interface Dictionary {
     summaryTreatment: string
     summaryCertificate: string
     summaryDistrict: string
+    summaryBrand: string
+    summaryModel: string
+    summaryCondition: string
+    summaryYear: string
     summaryPhotos: string
     edit: string
     negotiable: string
@@ -247,6 +316,10 @@ export interface Dictionary {
     publishNow: string
     goBackAndEdit: string
     deleteDraft: string
+    verifyPhoneButton: string
+    confirmTitleEdit: string
+    confirmBodyEdit: string
+    saveChanges: string
   }
   profile: {
     navTitle: string
@@ -283,12 +356,28 @@ export interface Dictionary {
   }
   editProfile: {
     title: string
-    nameLabel: string
+    changePhoto: string
+    fullNameLabel: string
+    fullNamePlaceholder: string
+    mobileNumberLabel: string
+    verifiedBadge: string
+    verifyPhoneLink: string
+    emailLabel: string
+    emailPlaceholder: string
+    shopNameLabel: string
+    shopNamePlaceholder: string
+    districtLabel: string
+    selectDistrictTitle: string
+    searchDistrictPlaceholder: string
     bioLabel: string
-    locationLabel: string
-    whatsappLabel: string
-    phoneLabel: string
+    bioPlaceholder: string
+    visibilityLabel: string
     showPhoneToggle: string
+    showPhoneToggleHint: string
+    publicProfileToggle: string
+    publicProfileToggleHint: string
+    saveChanges: string
+    deleteMyAccount: string
   }
   accountSettings: {
     title: string
@@ -342,9 +431,24 @@ export interface Dictionary {
   }
   deleteAccount: {
     title: string
-    warning: string
-    confirmPrompt: string
+    heading: string
+    subtitle: string
+    impactActiveListings: string
+    impactSaved: string
+    impactEnquiries: string
+    impactMembership: string
+    reasonLabel: string
+    reasonSoldWhatIHad: string
+    reasonTooManyMessages: string
+    reasonFoundAnotherPlatform: string
+    reasonPrivacyConcerns: string
+    reasonJustTakingABreak: string
+    typeToConfirmLabel: string
+    typeToConfirmPlaceholder: string
+    acknowledgeLabel: string
     confirmButton: string
+    keepAccountButton: string
+    footerHint: string
   }
   notifications: {
     title: string
@@ -355,6 +459,14 @@ export interface Dictionary {
     tabEnquiries: string
     tabPriceDrops: string
     tabNewListings: string
+    justNow: string
+    /** Contains a literal `{{count}}` marker. */
+    minutesAgo: string
+    /** Contains a literal `{{count}}` marker. */
+    hoursAgo: string
+    yesterday: string
+    /** Contains a literal `{{count}}` marker. */
+    daysAgo: string
   }
   savedSearches: {
     title: string
@@ -367,6 +479,12 @@ export interface Dictionary {
     emptySubtitle: string
   }
   favourites: {
+    emptyTitle: string
+    emptySubtitle: string
+  }
+  stores: {
+    title: string
+    searchPlaceholder: string
     emptyTitle: string
     emptySubtitle: string
   }
@@ -384,15 +502,22 @@ export interface Dictionary {
     statusPending: string
     statusSold: string
     statusExpired: string
+    statusDraft: string
+    statusPaused: string
     edit: string
-    promote: string
     markSold: string
     relist: string
     view: string
     renew: string
+    deactivate: string
+    reactivate: string
     delete: string
     deleteConfirmTitle: string
     deleteConfirmMessage: string
+    submitForReview: string
+    remove: string
+    removeConfirmTitle: string
+    removeConfirmMessage: string
     emptyTitle: string
     emptySubtitle: string
     postNewAd: string
@@ -576,6 +701,9 @@ export const en: Dictionary = {
       statusVerified: 'Code verified',
       submit: 'Confirm',
       verified: 'Verified',
+      noPhoneTitle: 'No phone number on file',
+      noPhoneSubtitle: 'Add a mobile number to your profile first, then come back to verify it.',
+      addPhoneButton: 'Add a phone number',
     },
     verifyEmail: {
       navTitle: 'Verify Email',
@@ -650,6 +778,51 @@ export const en: Dictionary = {
     quickRequestVideo: 'Request video',
     quickNegotiable: 'Is the price negotiable?',
     seen: 'Seen',
+    moreOptions: 'More options',
+    reportTitle: 'Why are you reporting this listing?',
+    reportReasonCounterfeit: 'Counterfeit or fake',
+    reportReasonMisleading: 'Misleading description or photos',
+    reportReasonProhibitedItem: 'Prohibited item',
+    reportReasonScam: 'Looks like a scam',
+    reportReasonOther: 'Something else',
+    reportDetailsPlaceholder: 'Add any extra details (optional)',
+    reportSubmit: 'Submit report',
+    reportSuccessTitle: 'Report submitted',
+    reportSuccessMessage:
+      "Thanks — our team will review this listing. It's still visible while we look into it.",
+    unblockSeller: 'Unblock seller',
+    blockConfirmTitle: 'Block this seller?',
+    blockConfirmMessage:
+      "You won't see their listings in search, and you won't be able to message them or reveal their phone number.",
+    blockConfirmButton: 'Block seller',
+    unblockConfirmTitle: 'Unblock this seller?',
+    unblockConfirmMessage: "You'll see their listings again and be able to contact them.",
+    unblockConfirmButton: 'Unblock seller',
+  },
+  sellerProfile: {
+    title: 'Seller',
+    favouriteSeller: 'Favourite this seller',
+    shareLabel: 'Share this store',
+    coverPhotoLabel: 'Shop cover photo',
+    logoLabel: 'logo',
+    galleryTitle: 'Shop gallery',
+    chatWithSeller: 'Chat with seller',
+    chat: 'Chat',
+    directions: 'Directions',
+    noListings: 'No active listings right now.',
+    searchInPrefix: 'Search in',
+    allChipLabel: 'All',
+    stonesSuffix: 'stones',
+    soldSuffix: 'sold',
+    reviewsSuffix: 'reviews',
+    sortNewest: 'Newest',
+  },
+  chats: {
+    title: 'Chats',
+    searchPlaceholder: 'Search chats',
+    youPrefix: 'You: ',
+    emptyTitle: 'No conversations yet',
+    emptySubtitle: "Message a seller from any listing and it'll show up here.",
   },
   gallery: {
     photoLabel: 'Photo',
@@ -657,8 +830,12 @@ export const en: Dictionary = {
   },
   postAd: {
     title: 'Post an ad',
+    editTitle: 'Edit ad',
     step1Title: 'Choose a category',
     step1Hint: 'What kind of stone are you listing?',
+    step1HintEquipment: 'What equipment are you listing?',
+    typeGemLabel: 'Gem',
+    typeEquipmentLabel: 'Equipment',
     step2Title: 'Add photos & video',
     step2Hint: 'A clear cover photo doubles your enquiries.',
     coverPhotoBadge: 'Cover photo',
@@ -667,7 +844,10 @@ export const en: Dictionary = {
     addVideo: 'Add video',
     photoTip:
       'Daylight, plain background, and one loupe shot sell fastest. Up to 20 photos and one video.',
+    editPhotosNotice:
+      "Photos can't be changed from this screen yet — everything else below is editable.",
     step3Title: 'Gem details',
+    step3TitleEquipment: 'Equipment details',
     step3Hint: 'Buyers filter on these — be precise.',
     titleLabel: 'Ad title',
     titlePlaceholder: 'e.g. Ceylon Blue Sapphire',
@@ -681,6 +861,17 @@ export const en: Dictionary = {
     treatmentGroupLabel: 'Treatment',
     certificateGroupLabel: 'Certificate',
     districtGroupLabel: 'District',
+    brandLabel: 'Brand',
+    brandPlaceholder: 'e.g. Facetron',
+    modelLabel: 'Model',
+    modelPlaceholder: 'e.g. Standard Faceter',
+    conditionGroupLabel: 'Condition',
+    yearLabel: 'Year manufactured',
+    yearPlaceholder: '2020',
+    specificationsLabel: 'Specifications',
+    specificationsPlaceholder: 'Motor, index wheel, included accessories…',
+    warrantyLabel: 'Warranty info',
+    warrantyPlaceholder: 'e.g. 6 months seller warranty',
     descriptionLabel: 'Description',
     descriptionPlaceholder: 'Colour, clarity, origin, certificate details…',
     negotiableTitle: 'Price negotiable',
@@ -693,6 +884,10 @@ export const en: Dictionary = {
     summaryTreatment: 'Treatment',
     summaryCertificate: 'Certificate',
     summaryDistrict: 'District',
+    summaryBrand: 'Brand',
+    summaryModel: 'Model',
+    summaryCondition: 'Condition',
+    summaryYear: 'Year',
     summaryPhotos: 'Photos',
     edit: 'Edit',
     negotiable: 'Negotiable',
@@ -706,6 +901,10 @@ export const en: Dictionary = {
     publishNow: 'Publish now',
     goBackAndEdit: 'Go back and edit',
     deleteDraft: 'Delete this draft',
+    verifyPhoneButton: 'Verify phone number',
+    confirmTitleEdit: 'Save these changes?',
+    confirmBodyEdit: "Your ad's text, price and details will update right away.",
+    saveChanges: 'Save changes',
   },
   profile: {
     navTitle: 'My account',
@@ -741,13 +940,29 @@ export const en: Dictionary = {
     footer: 'Ceylon Gem Exchange · v2.4.1',
   },
   editProfile: {
-    title: 'Edit profile',
-    nameLabel: 'Business name',
-    bioLabel: 'About',
-    locationLabel: 'Location',
-    whatsappLabel: 'WhatsApp number',
-    phoneLabel: 'Phone number',
-    showPhoneToggle: 'Show phone number on my listings',
+    title: 'Edit Profile',
+    changePhoto: 'Change photo',
+    fullNameLabel: 'Full name',
+    fullNamePlaceholder: 'Your name',
+    mobileNumberLabel: 'Mobile number',
+    verifiedBadge: 'Verified',
+    verifyPhoneLink: 'Verify now',
+    emailLabel: 'Email address',
+    emailPlaceholder: 'you@gemhouse.lk',
+    shopNameLabel: 'Display name / Shop',
+    shopNamePlaceholder: 'Optional',
+    districtLabel: 'District',
+    selectDistrictTitle: 'Select district',
+    searchDistrictPlaceholder: 'Search district',
+    bioLabel: 'About you',
+    bioPlaceholder: 'Tell sellers what you collect',
+    visibilityLabel: 'Visibility',
+    showPhoneToggle: 'Show my phone number',
+    showPhoneToggleHint: 'Sellers can call you directly',
+    publicProfileToggle: 'Public collector profile',
+    publicProfileToggleHint: 'Others can see your favourites',
+    saveChanges: 'Save changes',
+    deleteMyAccount: 'Delete my account',
   },
   accountSettings: {
     title: 'Account settings',
@@ -801,9 +1016,25 @@ export const en: Dictionary = {
   },
   deleteAccount: {
     title: 'Delete account',
-    warning: 'This will permanently delete your account and all your listings.',
-    confirmPrompt: 'Are you sure you want to continue?',
+    heading: "This can't be undone",
+    subtitle: 'Deleting {{phone}} removes your account and everything in it, permanently.',
+    impactActiveListings: '{{count}} active ads and all their photos',
+    impactSaved: '{{gems}} saved gems and {{searches}} saved searches',
+    impactEnquiries: 'Your enquiry history with sellers',
+    impactMembership: 'Trader Plus membership — no refund for the unused period',
+    reasonLabel: 'Why are you leaving? (optional)',
+    reasonSoldWhatIHad: 'Sold what I had',
+    reasonTooManyMessages: 'Too many messages',
+    reasonFoundAnotherPlatform: 'Found another platform',
+    reasonPrivacyConcerns: 'Privacy concerns',
+    reasonJustTakingABreak: 'Just taking a break',
+    typeToConfirmLabel: 'Type DELETE to confirm',
+    typeToConfirmPlaceholder: 'DELETE',
+    acknowledgeLabel: 'I understand my listings, enquiries and membership will be lost forever.',
     confirmButton: 'Delete my account',
+    keepAccountButton: 'Keep my account',
+    footerHint:
+      'Need a break instead? You can hide your ads and pause notifications from Account settings.',
   },
   notifications: {
     title: 'Notifications',
@@ -814,6 +1045,11 @@ export const en: Dictionary = {
     tabEnquiries: 'Enquiries',
     tabPriceDrops: 'Price drops',
     tabNewListings: 'New listings',
+    justNow: 'Just now',
+    minutesAgo: '{{count}} min ago',
+    hoursAgo: '{{count}} hours ago',
+    yesterday: 'Yesterday',
+    daysAgo: '{{count}} days ago',
   },
   savedSearches: {
     title: 'Saved searches',
@@ -829,6 +1065,12 @@ export const en: Dictionary = {
     emptyTitle: 'No favourites yet',
     emptySubtitle: 'Tap the heart on a listing to save it here.',
   },
+  stores: {
+    title: 'Stores',
+    searchPlaceholder: 'Search stores',
+    emptyTitle: 'No stores found',
+    emptySubtitle: 'Try a different search.',
+  },
   searchResults: {
     emptyTitle: 'No matches yet',
     emptySubtitle: "We'll show new listings here as they match this search.",
@@ -843,15 +1085,22 @@ export const en: Dictionary = {
     statusPending: 'Pending',
     statusSold: 'Sold',
     statusExpired: 'Expired',
+    statusDraft: 'Draft',
+    statusPaused: 'Paused',
     edit: 'Edit',
-    promote: 'Promote',
     markSold: 'Mark sold',
     relist: 'Relist',
     view: 'View',
     renew: 'Renew',
+    deactivate: 'Deactivate',
+    reactivate: 'Reactivate',
     delete: 'Delete',
     deleteConfirmTitle: 'Delete this ad?',
     deleteConfirmMessage: 'This will permanently remove the listing from your account.',
+    submitForReview: 'Submit for review',
+    remove: 'Remove',
+    removeConfirmTitle: 'Remove this ad?',
+    removeConfirmMessage: "It'll be taken down from the marketplace. You can't undo this.",
     emptyTitle: 'Nothing here yet',
     emptySubtitle: 'Ads you post in this state will appear here.',
     postNewAd: 'Post a new ad',

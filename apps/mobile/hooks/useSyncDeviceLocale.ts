@@ -48,7 +48,15 @@ export function useSyncDeviceLocale() {
     return () => {
       cancelled = true
     }
-  }, [isSignedIn, isReady, hasStoredPreference, getToken, setLocale])
+    // `getToken` deliberately excluded — Clerk's `useAuth()` hands back a
+    // new function identity on every render (not memoized), so listing it
+    // would re-run this on every render while `hasStoredPreference` is
+    // still false, not just once. `setLocale` only runs inside `pull()`
+    // itself and setting it also flips `hasStoredPreference` true (ending
+    // this effect's relevance), so it doesn't need to be a reactive
+    // dependency either.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, isReady, hasStoredPreference])
 
   useEffect(() => {
     if (!isSignedIn || !isReady) return
@@ -77,5 +85,12 @@ export function useSyncDeviceLocale() {
     return () => {
       cancelled = true
     }
-  }, [isSignedIn, isReady, locale, getToken])
+    // `getToken` deliberately excluded — see the pull effect's comment
+    // above. Unlike that one, this effect has no guard that goes false
+    // after its first real run, so leaving `getToken` in here was a live
+    // bug: it fired a `PATCH /me` on *every* render of whatever mounts
+    // this hook (`_layout.tsx`, wrapping the whole app) for the entire
+    // signed-in session, not just when `locale` actually changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, isReady, locale])
 }

@@ -1,47 +1,74 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { NOTIFICATIONS, type NotificationItem } from '../lib/notifications'
+
+export type NotificationKind = 'enquiries' | 'price_drops' | 'new_listings'
+
+export interface RealNotification {
+  id: string
+  kind: NotificationKind
+  title: string
+  body: string
+  listingId: string | null
+  savedSearchId: string | null
+  readAt: string | null
+  createdAt: string
+}
 
 interface NotificationsContextValue {
-  isUnread: (item: NotificationItem) => boolean
+  notifications: RealNotification[]
+  /** Replaces the whole list — called by `useSyncNotifications` after a fetch, and by notifications.tsx after a mutation that needs a fresh copy. */
+  setNotifications: (list: RealNotification[]) => void
+  isUnread: (item: RealNotification) => boolean
   unreadCount: number
-  markRead: (id: number) => void
-  markAllRead: () => void
+  /** Optimistic local update only — the caller (inside the Clerk tree, e.g. notifications.tsx) is responsible for the actual `PATCH` request. */
+  markReadLocally: (id: string) => void
+  markAllReadLocally: () => void
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null)
 
-// The single source of truth for which demo notifications are read —
-// shared across Home's bell dot and the Notifications inbox screen, so
-// marking something read (or "mark all as read") on the inbox actually
-// clears Home's dot instead of each screen keeping its own disconnected
-// copy of read state, which is what app/notifications.tsx did before this
-// (a local `readIds` — same gap every other local-only toggle in this app
-// still has, e.g. Favourites/Home/All Listings' own `liked` state, which
-// this doesn't touch). No `lib/storage.ts` persistence — read state resets
-// on app restart, same as every other in-memory-only preference here;
-// nothing asked for it to survive that, only for it to be shared live
-// between these two screens.
+// Real, server-backed notifications now (`GET /me/notifications`,
+// apps/api/src/notifications/notifications.controller.ts) — replaces the
+// static apps/mobile/lib/notifications.ts seed entirely. Split from the
+// fetch itself the same way LocaleProvider/useSyncDeviceLocale is: this
+// provider wraps the whole app *outside* ClerkProvider (app/_layout.tsx),
+// so it can't call `useAuth()`/`useUser()` itself — `useSyncNotifications`
+// (hooks/useSyncNotifications.ts), called from inside the Clerk tree,
+// does the actual fetching and pushes results in via `setNotifications`.
+// `markReadLocally`/`markAllReadLocally` are the same split: this provider
+// only updates local state instantly (so Home's bell dot clears without
+// waiting on a round trip), while the screen that calls them is
+// responsible for the real `PATCH` request that makes it stick.
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [readIds, setReadIds] = useState<Set<number>>(new Set())
+  const [notifications, setNotifications] = useState<RealNotification[]>([])
 
-  const isUnread = useCallback(
-    (item: NotificationItem) => !readIds.has(item.id) && !item.isRead,
-    [readIds],
+  const isUnread = useCallback((item: RealNotification) => item.readAt === null, [])
+
+  const markReadLocally = useCallback((id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
+    )
+  }, [])
+
+  const markAllReadLocally = useCallback(() => {
+    const now = new Date().toISOString()
+    setNotifications((prev) => prev.map((n) => (n.readAt ? n : { ...n, readAt: now })))
+  }, [])
+
+  const unreadCount = useMemo(
+    () => notifications.filter(isUnread).length,
+    [notifications, isUnread],
   )
 
-  const markRead = useCallback((id: number) => {
-    setReadIds((prev) => new Set(prev).add(id))
-  }, [])
-
-  const markAllRead = useCallback(() => {
-    setReadIds(new Set(NOTIFICATIONS.map((n) => n.id)))
-  }, [])
-
-  const unreadCount = useMemo(() => NOTIFICATIONS.filter(isUnread).length, [isUnread])
-
   const value = useMemo(
-    () => ({ isUnread, unreadCount, markRead, markAllRead }),
-    [isUnread, unreadCount, markRead, markAllRead],
+    () => ({
+      notifications,
+      setNotifications,
+      isUnread,
+      unreadCount,
+      markReadLocally,
+      markAllReadLocally,
+    }),
+    [notifications, isUnread, unreadCount, markReadLocally, markAllReadLocally],
   )
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>

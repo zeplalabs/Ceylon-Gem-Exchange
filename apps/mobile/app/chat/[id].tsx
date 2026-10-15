@@ -1,9 +1,11 @@
+import { useAuth } from '@clerk/expo'
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,22 +15,132 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Avatar, GlassSurface, IconButton, PressableScale } from '../../components'
+import {
+  Avatar,
+  BottomSheet,
+  Button,
+  ConfirmDialog,
+  GlassSurface,
+  IconButton,
+  PressableScale,
+  TextField,
+} from '../../components'
 import {
   AttachIcon,
+  BlockIcon,
   CallIcon,
+  CheckIcon,
   ChevronLeftIcon,
+  CloseIcon,
   GemIcon,
+  MoreVerticalIcon,
   SendIcon,
+  ShieldAlertIcon,
   ShieldCheckIcon,
 } from '../../components/icons'
 import { GRADIENT_140 } from '../../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../../components/primitives/LiveGradientBackground'
 import { useFontFamily } from '../../hooks/useFontFamily'
 import { useTranslation } from '../../hooks/useTranslation'
+import { API_URL } from '../../lib/apiUrl'
 import { getListingDetail, type ListingDetail } from '../../lib/listings'
 import { useCurrency } from '../../providers/CurrencyProvider'
 import { useGemTone } from '../../providers/GemToneProvider'
+
+// A real `listings` row has a uuid `id`; every static fixture in
+// lib/listings.ts uses a short plain string ('1'..'6') instead — so this
+// is a reliable way to tell "a listing created via post-ad.tsx's wizard"
+// apart from "the static demo data" without a separate flag threaded
+// through every navigation call site. Listing Detail (what normally links
+// here) isn't wired to the real API yet (see docs/remaining-work.md's
+// Critical Path), so every link into this screen today still passes a
+// static id — this only takes effect once something does pass a real one.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Minimal shape this screen actually needs, built from either the static
+// ListingDetail fixture or a real `GET /listings/:id` response — keeps the
+// real/static branch to one small adapter instead of threading `isReal ?`
+// through every render site below.
+interface ChatListingSummary {
+  id: string
+  name: string
+  specLine: string
+  priceUsd: number
+  sellerName: string
+  /**
+   * Always populated for the static-fixture path (that demo data was
+   * never gated). Always `null` for a real listing — `GET /listings/:id`
+   * deliberately no longer returns it (see that endpoint's own comment),
+   * so a real seller's number is only ever fetched on demand, by
+   * callSeller() below, through the rate-limited reveal endpoint.
+   */
+  sellerPhone: string | null
+  /**
+   * `users.id`, for the Block/Unblock seller sheet action below — `null`
+   * on the static-fixture path, since that demo seller isn't a real user
+   * row (block/unblock just toggles local, cosmetic state there instead).
+   */
+  sellerId: string | null
+}
+
+function summaryFromStatic(listing: ListingDetail): ChatListingSummary {
+  return {
+    id: listing.id,
+    name: listing.name,
+    specLine: `${listing.lotNumber} · ${listing.weight} · ${listing.treatment}`,
+    priceUsd: listing.priceUsd,
+    sellerName: listing.sellerName,
+    sellerPhone: listing.sellerPhone,
+    sellerId: null,
+  }
+}
+
+interface RealListingDetails {
+  caratWeight?: number
+  treatment?: string
+  brand?: string
+  equipmentType?: string
+  condition?: string
+}
+interface RealListingResponse {
+  id: string
+  sellerId: string
+  type: 'gem' | 'equipment'
+  title: string
+  priceAmountCents: number
+  sellerName: string | null
+  details: RealListingDetails | null
+}
+
+function summaryFromReal(listing: RealListingResponse): ChatListingSummary {
+  const d = listing.details
+  const specLine =
+    listing.type === 'gem'
+      ? [d?.caratWeight !== undefined ? `${d.caratWeight} ct` : null, d?.treatment]
+          .filter(Boolean)
+          .join(' · ')
+      : [d?.brand ?? d?.equipmentType, d?.condition].filter(Boolean).join(' · ')
+  return {
+    id: listing.id,
+    name: listing.title,
+    specLine,
+    priceUsd: listing.priceAmountCents / 100,
+    sellerName: listing.sellerName ?? '—',
+    sellerPhone: null,
+    sellerId: listing.sellerId,
+  }
+}
+
+interface RealMessage {
+  id: string
+  senderId: string
+  body: string
+  createdAt: string
+}
+interface RealThread {
+  id: string
+  buyerId: string
+}
 
 type ChatMessageKind = 'text' | 'photo' | 'offer'
 interface ChatMessage {
@@ -41,14 +153,15 @@ interface ChatMessage {
 }
 
 // Demo conversation seed, ported from the "Ceylon Gem Exchange Chat.dc.html"
-// mockup's own `state.msgs` — placeholder content in the same sense as
-// lib/listings.ts's detail data: no messaging backend exists yet (see
-// CLAUDE.md's "Current sequencing"), so this screen is a local-only chat
-// simulation, not wired to anything real. The mockup hardcoded one
-// specific listing's lot number/cert into the opening lines; this
-// interpolates the actual listing instead so the demo reads correctly
-// from any listing's Chat button, not just the one the mockup was built
-// against.
+// mockup's own `state.msgs` — only used on the static-fixture path
+// (UUID_PATTERN not matching `id`), where there's still no real seller on
+// the other end to have actually sent these. A real listing instead loads
+// its real thread from `apps/api`'s `inquiry_threads`/`inquiry_messages`
+// (see the effect in ChatScreen below) and starts empty, with no canned
+// reply. The mockup hardcoded one specific listing's lot number/cert into
+// the opening lines; this interpolates the actual listing instead so the
+// demo reads correctly from any listing's Chat button, not just the one
+// the mockup was built against.
 function buildSeedMessages(listing: ListingDetail): ChatMessage[] {
   return [
     { from: 'me', text: `Hi, is ${listing.lotNumber} still available?`, time: '10:12' },
@@ -72,9 +185,11 @@ function buildSeedMessages(listing: ListingDetail): ChatMessage[] {
   ]
 }
 
-function now() {
-  const d = new Date()
+function formatTime(d: Date) {
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+function now() {
+  return formatTime(new Date())
 }
 
 // "Perera Gem House" -> "PG" — Avatar's `initials` prop wants initials, not
@@ -89,26 +204,66 @@ function initialsFor(name: string) {
 }
 
 // Reached from Listing Detail's "Chat" action-bar button and the Seller
-// tab's chat button. Ports "Ceylon Gem Exchange Chat.dc.html" — the typing-
-// delay + canned-reply behavior in `send()` below replicates the mockup's
-// own `push()` logic exactly, so the interaction itself is real even
-// though the "seller" on the other end isn't (see buildSeedMessages above).
-// No photo backend exists yet (same situation as Listing Detail's gallery),
-// so the pinned-lot thumbnail and the one photo message both render the
-// same tinted-glass + GemIcon placeholder rather than a real image.
+// tab's chat button. Ports "Ceylon Gem Exchange Chat.dc.html". E1.4's
+// "Inquiry threads" are real now — `apps/api/src/inquiries/` persists
+// messages to a `(listing, buyer)` thread — but every current entry point
+// into this screen still passes a static-fixture id (Listing Detail isn't
+// wired to the real API yet, see docs/remaining-work.md), so the typing-
+// delay + canned-reply demo path (buildSeedMessages, send()'s fixture
+// branch) stays in place for those; it's exercised today, the real-API
+// branch is exercised once something upstream passes a real listing uuid.
+// No photo backend for *chat* exists yet (separate from E1.2's listing-
+// photo pipeline, which is real) — same situation as Listing Detail's
+// gallery, so the pinned-lot thumbnail and the one demo photo message both
+// render the same tinted-glass + GemIcon placeholder rather than a real
+// image, on both paths. `callSeller()` below is the other E1.4 item built
+// this way: a real listing's phone number is fetched on tap, through
+// `apps/api/src/phone-reveal/`'s rate-limited reveal endpoint, rather than
+// riding along on the listing fetch the way it used to (and the way the
+// static fixture's `sellerPhone` still does, since that demo data was
+// never real PII to protect).
 export default function ChatScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const listing = getListingDetail(id)
+  const { getToken } = useAuth()
+  const isRealListing = UUID_PATTERN.test(id ?? '')
+  const staticListing = !isRealListing ? getListingDetail(id) : undefined
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
   const { formatPrice } = useCurrency()
-  const price = listing ? formatPrice(listing.priceUsd) : ''
+
+  const [realListing, setRealListing] = useState<ChatListingSummary | null>(null)
+  const [loadingReal, setLoadingReal] = useState(isRealListing)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [revealingPhone, setRevealingPhone] = useState(false)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  const [moreSheetVisible, setMoreSheetVisible] = useState(false)
+  const [blocked, setBlocked] = useState(false)
+  const [blockStatusLoaded, setBlockStatusLoaded] = useState(false)
+  const [blockConfirmVisible, setBlockConfirmVisible] = useState(false)
+  const [blockActionLoading, setBlockActionLoading] = useState(false)
+  const [blockError, setBlockError] = useState<string | null>(null)
+
+  const [reportSheetVisible, setReportSheetVisible] = useState(false)
+  const [reportReason, setReportReason] = useState<string | null>(null)
+  const [reportDetails, setReportDetails] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+
+  const listingSummary: ChatListingSummary | null = isRealListing
+    ? realListing
+    : staticListing
+      ? summaryFromStatic(staticListing)
+      : null
+  const price = listingSummary ? formatPrice(listingSummary.priceUsd) : ''
 
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    listing ? buildSeedMessages(listing) : [],
+    staticListing ? buildSeedMessages(staticListing) : [],
   )
   const [draft, setDraft] = useState('')
   const [typing, setTyping] = useState(false)
@@ -133,12 +288,113 @@ export default function ChatScreen() {
     [],
   )
 
+  // Real backend path — only ever runs for a listing created via
+  // post-ad.tsx's wizard (see UUID_PATTERN's comment). Fetches the listing
+  // itself (public) and this buyer's thread with its seller (auth
+  // required) in parallel; a message's `from` is derived by comparing its
+  // `senderId` to `thread.buyerId` rather than needing a separate "who am
+  // I" call — the signed-in caller is always the thread's buyer here (see
+  // InquiriesController's own comment on why GET is buyer-only).
+  useEffect(() => {
+    if (!isRealListing || !id) return
+    let cancelled = false
+
+    async function load() {
+      setLoadingReal(true)
+      try {
+        const token = await getToken()
+        const [listingRes, messagesRes] = await Promise.all([
+          fetch(`${API_URL}/listings/${id}`),
+          token
+            ? fetch(`${API_URL}/listings/${id}/messages`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            : Promise.resolve(null),
+        ])
+        if (cancelled) return
+
+        if (listingRes.ok) {
+          const data = (await listingRes.json()) as RealListingResponse
+          setRealListing(summaryFromReal(data))
+        }
+
+        if (messagesRes?.ok) {
+          const data = (await messagesRes.json()) as {
+            thread: RealThread | null
+            messages: RealMessage[]
+          }
+          setMessages(
+            data.messages.map((m) => ({
+              from: data.thread && m.senderId === data.thread.buyerId ? 'me' : 'them',
+              text: m.body,
+              time: formatTime(new Date(m.createdAt)),
+            })),
+          )
+        }
+      } catch {
+        // Leave whatever's already loaded (nothing, on a fresh mount) —
+        // the screen still renders, just without a listing/thread to show.
+      } finally {
+        if (!cancelled) setLoadingReal(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+    // `getToken` deliberately excluded — Clerk's `useAuth()` hands back a
+    // new function identity on every render (not memoized), so listing it
+    // would re-fetch the whole thread (and reassign `messages` wholesale)
+    // on every render, including every keystroke in the composer below —
+    // same bug as edit-profile.tsx's identical fix, just manifesting as
+    // wasted requests/flicker here rather than un-typeable fields, since
+    // nothing in this effect touches `draft`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isRealListing])
+
   function send(text: string) {
     const trimmed = text.trim()
     if (!trimmed) return
-    setMessages((prev) => prev.concat({ from: 'me', text: trimmed, time: now() }))
     setDraft('')
+    setSendError(null)
 
+    if (isRealListing) {
+      setSending(true)
+      ;(async () => {
+        try {
+          const token = await getToken()
+          if (!token) throw new Error('Not signed in')
+          const res = await fetch(`${API_URL}/listings/${id}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ body: trimmed }),
+          })
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => null)
+            throw new Error(errBody?.message ?? `Failed to send (${res.status})`)
+          }
+          const data = (await res.json()) as { thread: RealThread; message: RealMessage }
+          setMessages((prev) =>
+            prev.concat({
+              from: 'me',
+              text: data.message.body,
+              time: formatTime(new Date(data.message.createdAt)),
+            }),
+          )
+        } catch (err) {
+          setSendError(err instanceof Error && err.message ? err.message : t.common.genericError)
+          setDraft(trimmed)
+        } finally {
+          setSending(false)
+        }
+      })()
+      return
+    }
+
+    // Static-fixture demo path, unchanged — a canned reply from the
+    // simulated "seller," since there's no real one on the other end.
+    setMessages((prev) => prev.concat({ from: 'me', text: trimmed, time: now() }))
     clearTimeout(replyTimer.current)
     clearInterval(dotsTimer.current)
     replyTimer.current = setTimeout(() => {
@@ -154,9 +410,146 @@ export default function ChatScreen() {
     }, 600)
   }
 
-  function callSeller() {
-    if (!listing) return
-    Linking.openURL(`tel:${listing.sellerPhone}`).catch(() => {})
+  // Static-fixture listings already have a phone number in hand (that demo
+  // data was never gated). A real listing doesn't — `GET /listings/:id`
+  // deliberately omits it (see RealListingResponse's own comment) — so
+  // this reveals it on demand through the rate-limited endpoint right
+  // before dialing, rather than fetching it alongside the rest of the
+  // listing whether or not the buyer ever taps "call."
+  async function callSeller() {
+    if (!listingSummary) return
+    if (listingSummary.sellerPhone) {
+      Linking.openURL(`tel:${listingSummary.sellerPhone}`).catch(() => {})
+      return
+    }
+    if (!isRealListing || revealingPhone) return
+
+    setPhoneError(null)
+    setRevealingPhone(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`${API_URL}/listings/${id}/reveal-phone`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        throw new Error(errBody?.message ?? `Couldn't get the seller's number (${res.status})`)
+      }
+      const data = (await res.json()) as { phone: string | null }
+      if (!data.phone) {
+        throw new Error("This seller hasn't added a phone number yet")
+      }
+      Linking.openURL(`tel:${data.phone}`).catch(() => {})
+    } catch (err) {
+      setPhoneError(err instanceof Error && err.message ? err.message : t.common.genericError)
+    } finally {
+      setRevealingPhone(false)
+    }
+  }
+
+  // Opens the header overflow sheet, and lazily fetches this seller's
+  // current block status the first time it's opened for a real listing —
+  // no need to pay for that request on every chat mount, only when the
+  // buyer actually looks at the Block/Unblock action. The static-fixture
+  // path has no real seller to check and just keeps its local toggle.
+  async function openMoreSheet() {
+    setMoreSheetVisible(true)
+    if (!isRealListing || !listingSummary?.sellerId || blockStatusLoaded) return
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await fetch(`${API_URL}/sellers/${listingSummary.sellerId}/block`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { blocked: boolean }
+        setBlocked(data.blocked)
+      }
+    } catch {
+      // Leave `blocked` at its current value — the sheet still works,
+      // just might show the wrong label until the next successful check.
+    } finally {
+      setBlockStatusLoaded(true)
+    }
+  }
+
+  function openBlockConfirm() {
+    setMoreSheetVisible(false)
+    setBlockError(null)
+    setBlockConfirmVisible(true)
+  }
+
+  async function confirmBlockToggle() {
+    if (blockActionLoading) return
+    if (!isRealListing || !listingSummary?.sellerId) {
+      // Static-fixture demo seller isn't a real user row — cosmetic only.
+      setBlocked((b) => !b)
+      setBlockConfirmVisible(false)
+      return
+    }
+    setBlockActionLoading(true)
+    setBlockError(null)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`${API_URL}/sellers/${listingSummary.sellerId}/block`, {
+        method: blocked ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        throw new Error(errBody?.message ?? `Failed to update block status (${res.status})`)
+      }
+      setBlocked((b) => !b)
+      setBlockConfirmVisible(false)
+    } catch (err) {
+      setBlockError(err instanceof Error && err.message ? err.message : t.common.genericError)
+    } finally {
+      setBlockActionLoading(false)
+    }
+  }
+
+  function openReportSheet() {
+    setMoreSheetVisible(false)
+    setReportReason(null)
+    setReportDetails('')
+    setReportSubmitted(false)
+    setReportError(null)
+    setReportSheetVisible(true)
+  }
+
+  async function submitReport() {
+    if (!reportReason || reportSubmitting) return
+
+    if (!isRealListing) {
+      // Static-fixture demo listing has no real `listings` row to attach a
+      // report to — cosmetic only, same reasoning as the block toggle above.
+      setReportSubmitted(true)
+      return
+    }
+
+    setReportSubmitting(true)
+    setReportError(null)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`${API_URL}/listings/${id}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: reportReason, details: reportDetails.trim() || undefined }),
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        throw new Error(errBody?.message ?? `Failed to submit report (${res.status})`)
+      }
+      setReportSubmitted(true)
+    } catch (err) {
+      setReportError(err instanceof Error && err.message ? err.message : t.common.genericError)
+    } finally {
+      setReportSubmitting(false)
+    }
   }
 
   // Chat always belongs to a specific listing, so if there's no back-stack
@@ -167,14 +560,14 @@ export default function ChatScreen() {
   function goBack() {
     if (router.canGoBack()) {
       router.back()
-    } else if (listing) {
-      router.replace(`/listing/${listing.id}`)
+    } else if (listingSummary) {
+      router.replace(`/listing/${listingSummary.id}`)
     } else {
       router.replace('/')
     }
   }
 
-  if (!listing) {
+  if (!listingSummary) {
     return (
       <LiveGradientBackground>
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -187,13 +580,26 @@ export default function ChatScreen() {
               radius={14}
             />
           </View>
+          {isRealListing && loadingReal ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={neutral.white} />
+            </View>
+          ) : null}
         </SafeAreaView>
       </LiveGradientBackground>
     )
   }
 
   const quick = [t.chat.quickBookViewing, t.chat.quickRequestVideo, t.chat.quickNegotiable]
-  const filled = draft.trim().length > 0
+  const filled = draft.trim().length > 0 && !sending
+
+  const reportReasons = [
+    { value: 'counterfeit', label: t.chat.reportReasonCounterfeit },
+    { value: 'misleading', label: t.chat.reportReasonMisleading },
+    { value: 'prohibited_item', label: t.chat.reportReasonProhibitedItem },
+    { value: 'scam', label: t.chat.reportReasonScam },
+    { value: 'other', label: t.chat.reportReasonOther },
+  ]
 
   return (
     <LiveGradientBackground>
@@ -207,11 +613,11 @@ export default function ChatScreen() {
             radius={14}
           />
           <View style={styles.avatarWrap}>
-            <Avatar initials={initialsFor(listing.sellerName)} size={40} badge="online" />
+            <Avatar initials={initialsFor(listingSummary.sellerName)} size={40} badge="online" />
           </View>
           <View style={styles.nameCol}>
             <Text style={[styles.name, { fontFamily: fonts.extrabold }]} numberOfLines={1}>
-              {listing.sellerName}
+              {listingSummary.sellerName}
             </Text>
             <Text
               style={[
@@ -227,15 +633,26 @@ export default function ChatScreen() {
             icon={<CallIcon size={16} />}
             accessibilityLabel={t.listingDetail.callSeller}
             onPress={callSeller}
+            disabled={revealingPhone}
+            size={40}
+            radius={14}
+          />
+          <IconButton
+            icon={<MoreVerticalIcon size={18} />}
+            accessibilityLabel={t.chat.moreOptions}
+            onPress={openMoreSheet}
             size={40}
             radius={14}
           />
         </View>
 
+        {phoneError ? <Text style={styles.phoneError}>{phoneError}</Text> : null}
+        {blockError ? <Text style={styles.phoneError}>{blockError}</Text> : null}
+
         <View style={styles.pinnedWrap}>
           <PressableScale
-            onPress={() => router.push(`/listing/${listing.id}`)}
-            accessibilityLabel={`${listing.name}, ${price}`}
+            onPress={() => router.push(`/listing/${listingSummary.id}`)}
+            accessibilityLabel={`${listingSummary.name}, ${price}`}
           >
             <GlassSurface clarity={55} radius={20} style={styles.lotCard}>
               <View style={styles.lotThumb}>
@@ -243,10 +660,10 @@ export default function ChatScreen() {
               </View>
               <View style={styles.lotCol}>
                 <Text style={[styles.lotName, { fontFamily: fonts.bold }]} numberOfLines={1}>
-                  {listing.name}
+                  {listingSummary.name}
                 </Text>
                 <Text style={[styles.lotMeta, { fontFamily: fonts.semibold }]} numberOfLines={1}>
-                  {listing.lotNumber} · {listing.weight} · {listing.treatment}
+                  {listingSummary.specLine}
                 </Text>
               </View>
               <Text style={[styles.lotPrice, { fontFamily: fonts.extrabold, color: tone.accent }]}>
@@ -311,7 +728,7 @@ export default function ChatScreen() {
                   {kind === 'offer' ? (
                     <OfferBubble
                       amountUsd={m.amountUsd!}
-                      listedPriceUsd={listing.priceUsd}
+                      listedPriceUsd={listingSummary.priceUsd}
                       fonts={fonts}
                       t={t}
                     />
@@ -339,6 +756,7 @@ export default function ChatScreen() {
           </ScrollView>
 
           <View style={styles.composerOuter}>
+            {sendError ? <Text style={styles.sendError}>{sendError}</Text> : null}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -378,7 +796,10 @@ export default function ChatScreen() {
                   value={draft}
                   onChangeText={setDraft}
                   onSubmitEditing={() => send(draft)}
-                  placeholder={t.chat.composerPlaceholder.replace('{{name}}', listing.sellerName)}
+                  placeholder={t.chat.composerPlaceholder.replace(
+                    '{{name}}',
+                    listingSummary.sellerName,
+                  )}
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   style={[styles.input, { fontFamily: fonts.medium }]}
                   returnKeyType="send"
@@ -417,6 +838,159 @@ export default function ChatScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <BottomSheet
+        visible={moreSheetVisible}
+        onClose={() => setMoreSheetVisible(false)}
+        closeAccessibilityLabel={t.common.close}
+        radius={30}
+        style={styles.moreSheet}
+      >
+        <View style={styles.sheetHeader}>
+          <Text style={[styles.sheetTitle, { fontFamily: fonts.extrabold }]}>
+            {t.chat.moreOptions}
+          </Text>
+          <PressableScale
+            onPress={() => setMoreSheetVisible(false)}
+            accessibilityLabel={t.common.close}
+            hitSlop={8}
+            style={styles.sheetClose}
+          >
+            <CloseIcon />
+          </PressableScale>
+        </View>
+
+        <PressableScale
+          onPress={openReportSheet}
+          accessibilityLabel={t.chat.reportTitle}
+          style={styles.sheetActionRow}
+        >
+          <View style={[styles.sheetIconTile, { backgroundColor: `rgba(${tone.rim},0.13)` }]}>
+            <ShieldAlertIcon size={17} color={tone.ink} strokeWidth={1.8} />
+          </View>
+          <Text style={[styles.sheetActionLabel, { fontFamily: fonts.semibold }]}>
+            {t.chat.reportTitle}
+          </Text>
+        </PressableScale>
+
+        <PressableScale
+          onPress={openBlockConfirm}
+          accessibilityLabel={blocked ? t.chat.unblockSeller : t.chat.blockConfirmButton}
+          style={styles.sheetActionRow}
+        >
+          <View style={[styles.sheetIconTile, styles.sheetIconTileDanger]}>
+            <BlockIcon size={17} color={neutral.danger.text} strokeWidth={1.8} />
+          </View>
+          <Text
+            style={[
+              styles.sheetActionLabel,
+              styles.sheetActionLabelDanger,
+              { fontFamily: fonts.semibold },
+            ]}
+          >
+            {blocked ? t.chat.unblockSeller : t.chat.blockConfirmButton}
+          </Text>
+        </PressableScale>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={reportSheetVisible}
+        onClose={() => setReportSheetVisible(false)}
+        closeAccessibilityLabel={t.common.close}
+        radius={30}
+        style={styles.reportSheet}
+      >
+        <View style={styles.sheetHeader}>
+          <Text
+            style={[styles.sheetTitle, styles.settingsFlexGrow, { fontFamily: fonts.extrabold }]}
+            numberOfLines={2}
+          >
+            {reportSubmitted ? t.chat.reportSuccessTitle : t.chat.reportTitle}
+          </Text>
+          <PressableScale
+            onPress={() => setReportSheetVisible(false)}
+            accessibilityLabel={t.common.close}
+            hitSlop={8}
+            style={styles.sheetClose}
+          >
+            <CloseIcon />
+          </PressableScale>
+        </View>
+
+        {reportSubmitted ? (
+          <View style={styles.reportSuccessBody}>
+            <ShieldCheckIcon size={30} color={tone.ink} strokeWidth={1.6} />
+            <Text style={[styles.reportSuccessText, { fontFamily: fonts.semibold }]}>
+              {t.chat.reportSuccessMessage}
+            </Text>
+            <Button label={t.common.done} onPress={() => setReportSheetVisible(false)} />
+          </View>
+        ) : (
+          <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+            {reportReasons.map((reason) => {
+              const active = reason.value === reportReason
+              return (
+                <PressableScale
+                  key={reason.value}
+                  onPress={() => setReportReason(reason.value)}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={reason.label}
+                  accessibilityState={{ checked: active }}
+                  style={[
+                    styles.sheetOption,
+                    active
+                      ? {
+                          backgroundColor: `rgba(${tone.rim},0.14)`,
+                          borderColor: `rgba(${tone.rim},0.3)`,
+                        }
+                      : styles.sheetOptionInactive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.sheetOptionLabel,
+                      styles.settingsFlexGrow,
+                      { fontFamily: fonts.semibold },
+                    ]}
+                  >
+                    {reason.label}
+                  </Text>
+                  {active ? <CheckIcon size={14} color={tone.accent} /> : null}
+                </PressableScale>
+              )
+            })}
+
+            <TextField
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              placeholder={t.chat.reportDetailsPlaceholder}
+              multiline
+              style={styles.reportDetailsField}
+            />
+
+            {reportError ? <Text style={styles.sendError}>{reportError}</Text> : null}
+
+            <Button
+              label={t.chat.reportSubmit}
+              onPress={submitReport}
+              loading={reportSubmitting}
+              disabled={!reportReason}
+              style={styles.reportSubmitButton}
+            />
+          </ScrollView>
+        )}
+      </BottomSheet>
+
+      <ConfirmDialog
+        visible={blockConfirmVisible}
+        title={blocked ? t.chat.unblockConfirmTitle : t.chat.blockConfirmTitle}
+        message={blocked ? t.chat.unblockConfirmMessage : t.chat.blockConfirmMessage}
+        confirmLabel={blocked ? t.chat.unblockConfirmButton : t.chat.blockConfirmButton}
+        cancelLabel={t.common.cancel}
+        destructive={!blocked}
+        onConfirm={confirmBlockToggle}
+        onCancel={() => setBlockConfirmVisible(false)}
+      />
     </LiveGradientBackground>
   )
 }
@@ -537,6 +1111,11 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Exact values from the mockup's default glassClarity (55)/density
   // ("Airy") computations — not the general spacing/fontSize/radii scales,
@@ -721,6 +1300,17 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 10,
   },
+  sendError: {
+    paddingHorizontal: 2,
+    fontSize: 11,
+    color: neutral.danger.textStrong,
+  },
+  phoneError: {
+    paddingHorizontal: 22,
+    marginTop: -4,
+    fontSize: 11,
+    color: neutral.danger.textStrong,
+  },
   quickRow: {
     flexDirection: 'row',
     gap: 8,
@@ -770,5 +1360,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  // More-options / Report sheets — same BottomSheet header/row shape as
+  // Profile's Account Settings picker sheets (closeIcon header, selectable
+  // rows with a trailing checkmark), ported here since this screen has its
+  // own separate StyleSheet rather than sharing profile.tsx's.
+  moreSheet: {
+    paddingBottom: 24,
+  },
+  reportSheet: {
+    paddingBottom: 20,
+    maxHeight: '82%',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    gap: 12,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    color: neutral.white,
+  },
+  sheetClose: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  settingsFlexGrow: {
+    flex: 1,
+  },
+  sheetActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+  },
+  sheetIconTile: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetIconTileDanger: {
+    backgroundColor: neutral.danger.surface,
+    borderColor: neutral.danger.border,
+  },
+  sheetActionLabel: {
+    fontSize: 14,
+    color: neutral.white,
+  },
+  sheetActionLabelDanger: {
+    color: neutral.danger.text,
+  },
+  sheetBody: {
+    paddingHorizontal: 14,
+  },
+  sheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 2,
+  },
+  sheetOptionInactive: {
+    borderColor: 'transparent',
+  },
+  sheetOptionLabel: {
+    color: neutral.white,
+    fontSize: 14,
+  },
+  reportDetailsField: {
+    marginTop: 12,
+    marginHorizontal: 2,
+  },
+  reportSubmitButton: {
+    marginTop: 18,
+    marginHorizontal: 2,
+    marginBottom: 8,
+  },
+  reportSuccessBody: {
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 24,
+    paddingTop: 4,
+  },
+  reportSuccessText: {
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 13 * 1.5,
+    color: 'rgba(255,255,255,0.75)',
   },
 })

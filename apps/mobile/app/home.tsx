@@ -18,8 +18,8 @@ import {
 } from '../components'
 import {
   BellIcon,
+  ChatIcon,
   CloseIcon,
-  ExploreTabIcon,
   FilterIcon,
   GemIcon,
   HeartIcon,
@@ -27,15 +27,18 @@ import {
   PlusIcon,
   ProfileTabIcon,
   SearchIcon,
+  StoreIcon,
 } from '../components/icons'
 import { GRADIENT_140 } from '../components/primitives/gradientAngle'
 import { LiveGradientBackground } from '../components/primitives/LiveGradientBackground'
 import { PressableScale } from '../components/primitives/PressableScale'
 import { useFilters } from '../hooks/useFilters'
 import { useFontFamily } from '../hooks/useFontFamily'
+import { useToggleFavorite } from '../hooks/useToggleFavorite'
 import { useTranslation } from '../hooks/useTranslation'
-import { defaultLikedIds, featuredListings, type Listing } from '../lib/listings'
+import { featuredListings, type Listing } from '../lib/listings'
 import { useCurrency } from '../providers/CurrencyProvider'
+import { useFavorites } from '../providers/FavoritesProvider'
 import { useGemTone } from '../providers/GemToneProvider'
 import { useNotifications } from '../providers/NotificationsProvider'
 const PAD = 22
@@ -91,31 +94,35 @@ export default function HomeScreen() {
   const [picked, setPicked] = useState<PickedFilters>(emptyPicked)
   const [price, setPrice] = useState(12000)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [liked, setLiked] = useState<Set<string>>(defaultLikedIds)
-  // The mockup's bottom nav switches a local `navIdx` with no other real
-  // destination screens built yet for Explore/Saved, so those only change
-  // which tab reads as active, per the same build-the-visible-interaction-
-  // now precedent as Signup's role tabs. Profile is the one exception — it
-  // now navigates to the real Profile hub screen (which has its own copy
-  // of this same shared BottomNavBar, with "Profile" as the one already
-  // active) rather than just toggling active state here, so handleNavChange
-  // below doesn't set it as the local tab. The middle slot (previously
-  // "Bids") is now the raised "Post ad" button, routing to the real
-  // app/post-ad.tsx wizard — it never reads as an active tab (BottomNavBar
-  // skips the active-state treatment entirely for `raised` items), so it's
-  // a real navigation inside the `value === 'post'` branch below rather
-  // than a `setNavValue` call.
-  const [navValue, setNavValue] = useState<'home' | 'explore' | 'post' | 'saved' | 'profile'>(
-    'home',
-  )
+  const { likedIds } = useFavorites()
+  const toggleLike = useToggleFavorite()
+  // Profile, Chat, and Saved all navigate to real screens (Profile's hub,
+  // the Chats inbox, and the real Favourites screen — see app/chats.tsx /
+  // app/favourites.tsx) that each have their own copy of this same shared
+  // BottomNavBar with their own tab already active, so handleNavChange
+  // below never sets any of them as a local tab. The middle slot
+  // (previously "Bids") is the raised "Post ad" button, routing to the
+  // real app/post-ad.tsx wizard — it never reads as an active tab
+  // (BottomNavBar skips the active-state treatment entirely for `raised`
+  // items), so it's a real navigation inside the `value === 'post'` branch
+  // below rather than a `setNavValue` call.
+  const [navValue, setNavValue] = useState<'home' | 'chat' | 'post' | 'saved' | 'profile'>('home')
 
-  function handleNavChange(value: 'home' | 'explore' | 'post' | 'saved' | 'profile') {
+  function handleNavChange(value: 'home' | 'chat' | 'post' | 'saved' | 'profile') {
     if (value === 'profile') {
       router.push('/profile')
       return
     }
     if (value === 'post') {
       router.push('/post-ad')
+      return
+    }
+    if (value === 'chat') {
+      router.push('/chats')
+      return
+    }
+    if (value === 'saved') {
+      router.push('/favourites')
       return
     }
     setNavValue(value)
@@ -126,15 +133,6 @@ export default function HomeScreen() {
       const current = prev[group] ?? []
       const next = current.includes(name) ? current.filter((x) => x !== name) : [...current, name]
       return { ...prev, [group]: next }
-    })
-  }, [])
-
-  const toggleLike = useCallback((id: string) => {
-    setLiked((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
     })
   }, [])
 
@@ -165,13 +163,13 @@ export default function HomeScreen() {
           spec={item.spec}
           priceUsd={item.priceUsd}
           badge={item.badge}
-          liked={liked.has(item.id)}
+          liked={likedIds.has(item.id)}
           onToggleLike={() => toggleLike(item.id)}
           onPress={() => router.push(`/listing/${item.id}`)}
         />
       </View>
     ),
-    [liked, toggleLike, router],
+    [likedIds, toggleLike, router],
   )
 
   if (isLoaded && !isSignedIn) {
@@ -195,26 +193,42 @@ export default function HomeScreen() {
             </Text>
           </View>
           <PressableScale
+            onPress={() => router.push('/stores')}
+            accessibilityRole="button"
+            accessibilityLabel={t.stores.title}
+            hitSlop={4}
+          >
+            <GlassSurface radius={14} clarity={55} style={styles.bell}>
+              <StoreIcon size={18} />
+            </GlassSurface>
+          </PressableScale>
+          <PressableScale
             onPress={() => router.push('/notifications')}
             accessibilityRole="button"
             accessibilityLabel={t.notifications.title}
             hitSlop={4}
+            style={styles.bellWrap}
           >
             <GlassSurface radius={14} clarity={55} style={styles.bell}>
               <BellIcon />
-              {/* Was unconditional before — now tied to
-                  NotificationsProvider's real unread count so it actually
-                  clears once everything's been read on the inbox screen,
-                  instead of a permanently-on decoration. */}
-              {unreadCount > 0 ? (
-                <View
-                  style={[
-                    styles.bellDot,
-                    { backgroundColor: tone.accent, shadowColor: tone.accent },
-                  ]}
-                />
-              ) : null}
             </GlassSurface>
+            {/* Sibling of GlassSurface, not a child — same reasoning as
+                the filter button's count badge above: GlassSurface's own
+                `overflow: 'hidden'` clips a corner-overhanging child.
+                Was a plain dot before; now the same numbered-pill style as
+                the filter badge, tied to NotificationsProvider's real
+                unread count so it actually clears once everything's been
+                read on the inbox screen. */}
+            {unreadCount > 0 ? (
+              <LinearGradient
+                colors={[`${tone.cta[0]}0.95)`, `${tone.cta[1]}0.85)`]}
+                style={[styles.filterCount, { borderColor: `rgba(${tone.rim},0.6)` }]}
+              >
+                <Text style={[styles.filterCountLabel, { fontFamily: fonts.extrabold }]}>
+                  {unreadCount}
+                </Text>
+              </LinearGradient>
+            ) : null}
           </PressableScale>
         </View>
 
@@ -254,20 +268,29 @@ export default function HomeScreen() {
                   onPress={() => setFilterOpen(true)}
                   accessibilityRole="button"
                   accessibilityLabel={t.home.filtersTitle}
+                  style={styles.filterButtonWrap}
                 >
                   <GlassSurface radius={18} clarity={55} style={styles.filterButton}>
                     <FilterIcon color={tone.accent} />
-                    {hasFilters ? (
-                      <LinearGradient
-                        colors={[`${tone.cta[0]}0.95)`, `${tone.cta[1]}0.85)`]}
-                        style={[styles.filterCount, { borderColor: `rgba(${tone.rim},0.6)` }]}
-                      >
-                        <Text style={[styles.filterCountLabel, { fontFamily: fonts.extrabold }]}>
-                          {activeChips.length}
-                        </Text>
-                      </LinearGradient>
-                    ) : null}
                   </GlassSurface>
+                  {/* Sibling of GlassSurface, not a child — GlassSurface's
+                      own outer View clips to its rounded corner
+                      (`overflow: 'hidden'`, needed so its blur/tint layers
+                      don't bleed past the radius), which was clipping this
+                      badge's intentional corner overhang (top/right: -4)
+                      down to roughly half a circle. Absolutely positioning
+                      it here instead, against this wrapper, keeps the
+                      overhang intact. */}
+                  {hasFilters ? (
+                    <LinearGradient
+                      colors={[`${tone.cta[0]}0.95)`, `${tone.cta[1]}0.85)`]}
+                      style={[styles.filterCount, { borderColor: `rgba(${tone.rim},0.6)` }]}
+                    >
+                      <Text style={[styles.filterCountLabel, { fontFamily: fonts.extrabold }]}>
+                        {activeChips.length}
+                      </Text>
+                    </LinearGradient>
+                  ) : null}
                 </PressableScale>
               </View>
 
@@ -325,7 +348,11 @@ export default function HomeScreen() {
         style={[styles.floatingNav, { bottom: 30 }]}
         items={[
           { value: 'home', label: 'Home', icon: (color) => <HomeTabIcon color={color} /> },
-          { value: 'explore', label: 'Explore', icon: (color) => <ExploreTabIcon color={color} /> },
+          {
+            value: 'chat',
+            label: 'Chat',
+            icon: (color) => <ChatIcon size={20} color={color} strokeWidth={1.9} />,
+          },
           {
             value: 'post',
             label: 'Post ad',
@@ -564,22 +591,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     color: '#fff',
   },
+  bellWrap: {
+    position: 'relative',
+  },
   bell: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bellDot: {
-    position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 5,
   },
   listContent: {
     paddingHorizontal: PAD,
@@ -609,8 +628,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 50,
   },
-  filterButton: {
+  filterButtonWrap: {
     position: 'relative',
+  },
+  filterButton: {
     width: 50,
     height: 50,
     alignItems: 'center',

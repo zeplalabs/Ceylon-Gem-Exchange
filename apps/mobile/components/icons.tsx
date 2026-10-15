@@ -1267,3 +1267,86 @@ export function PublishCheckIcon({ size = 15, color = '#fff', strokeWidth = 2.2 
     </Svg>
   )
 }
+
+// Chat's header "more options" trigger (opens the Report/Block sheet) —
+// a plain vertical-dots overflow glyph. No Claude Design mockup backs
+// this screen (see chat/[id].tsx's own comment), so this is hand-authored
+// to match the kit's existing simple stroke icons rather than ported from
+// a design file.
+export function MoreVerticalIcon({ size = 18, color = '#fff', strokeWidth = 1.8 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Circle cx="10" cy="4" r="1.1" fill={color} stroke={color} strokeWidth={strokeWidth / 4} />
+      <Circle cx="10" cy="10" r="1.1" fill={color} stroke={color} strokeWidth={strokeWidth / 4} />
+      <Circle cx="10" cy="16" r="1.1" fill={color} stroke={color} strokeWidth={strokeWidth / 4} />
+    </Svg>
+  )
+}
+
+// Chat header sheet's "Block seller" row glyph — a universal no-entry
+// circle-slash. Same no-mockup caveat as `MoreVerticalIcon` above.
+export function BlockIcon({ size = 17, color = '#fff', strokeWidth = 1.8 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Circle cx="10" cy="10" r="7.5" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M4.8 4.8l10.4 10.4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  )
+}
+
+// Edit Profile's "Display name / Shop" field glyph — a storefront
+// (awning + box), exact path ported from the Edit Profile mockup.
+export function StoreIcon({ size = 17, color = '#fff', strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3.5 8.5h17v11h-17zM3.5 8.5 5 4.5h14l1.5 4"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
+// Edit Profile's "District" field glyph — a map pin, exact path ported
+// from the mockup (also reused for the district-picker sheet's rows).
+export function PinIcon({ size = 17, color = '#fff', strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="10" r="2.6" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  )
+}
+
+// Delete Account's warning seal — a triangle exclamation mark, exact path
+// ported from that mockup. Distinct from `ShieldAlertIcon` (a rounded
+// shield outline, used for Post Ad's moderation notice and Chat's Report
+// row), which this screen's mockup doesn't use.
+export function AlertTriangleIcon({ size = 26, color = '#fff', strokeWidth = 1.6 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 3.2 21 19.5H3z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 9.5v4.4M12 16.8h.01"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </Svg>
+  )
+}

@@ -32,7 +32,7 @@ export class ClerkAuthGuard implements CanActivate {
   }
 }
 
-function extractBearerToken(header: string | undefined): string | null {
+export function extractBearerToken(header: string | undefined): string | null {
   if (!header?.startsWith('Bearer ')) {
     return null
   }
