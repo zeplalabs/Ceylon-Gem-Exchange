@@ -13,6 +13,7 @@ interface SearchQueryParams {
   q?: string
   type?: string
   species?: string
+  shape?: string
   treatment?: string
   certAuthority?: string
   origin?: string
@@ -39,6 +40,21 @@ const SORT_MAP: Record<string, string> = {
 // (no escape sequence exists for it in this syntax).
 function filterValue(value: string) {
   return `\`${value.replace(/`/g, "'")}\``
+}
+
+// Home's filter sheet lets a buyer pick more than one option within the
+// same group (e.g. two "Stone" chips at once) — sent here as a
+// comma-joined query param. Typesense's `field:=[a,b]` equality syntax is
+// an OR match against any listed value, so a single value (the common
+// case) is just the one-element-array form of the same syntax, not a
+// special case.
+function filterValues(field: string, raw: string) {
+  const values = raw
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  if (values.length === 0) return null
+  return `${field}:=[${values.map(filterValue).join(',')}]`
 }
 
 function clampInt(value: string | undefined, fallback: number, min: number, max: number) {
@@ -84,12 +100,19 @@ export class SearchController {
       }
     }
     if (query.type) filters.push(`type:=${query.type}`)
-    if (query.species) filters.push(`species:=${filterValue(query.species)}`)
-    if (query.treatment) filters.push(`treatment:=${filterValue(query.treatment)}`)
-    if (query.certAuthority) filters.push(`certAuthority:=${filterValue(query.certAuthority)}`)
-    if (query.origin) filters.push(`origin:=${filterValue(query.origin)}`)
-    if (query.equipmentType) filters.push(`equipmentType:=${filterValue(query.equipmentType)}`)
-    if (query.condition) filters.push(`condition:=${filterValue(query.condition)}`)
+    for (const [field, raw] of [
+      ['species', query.species],
+      ['shape', query.shape],
+      ['treatment', query.treatment],
+      ['certAuthority', query.certAuthority],
+      ['origin', query.origin],
+      ['equipmentType', query.equipmentType],
+      ['condition', query.condition],
+    ] as const) {
+      if (!raw) continue
+      const filter = filterValues(field, raw)
+      if (filter) filters.push(filter)
+    }
     if (query.currency) filters.push(`priceCurrency:=${filterValue(query.currency)}`)
 
     const minPrice = query.minPriceCents ? Number.parseInt(query.minPriceCents, 10) : undefined
@@ -111,7 +134,7 @@ export class SearchController {
         q: query.q?.trim() || '*',
         query_by: 'title,description',
         filter_by: filters.length > 0 ? filters.join(' && ') : undefined,
-        facet_by: 'type,species,treatment,certAuthority,origin,equipmentType,condition',
+        facet_by: 'type,species,shape,treatment,certAuthority,origin,equipmentType,condition',
         sort_by: SORT_MAP[query.sort ?? ''] ?? 'publishedAtTs:desc',
         page,
         per_page: perPage,

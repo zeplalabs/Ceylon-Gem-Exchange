@@ -23,24 +23,62 @@ review (`PATCH /listings/:id/status {action:'submit'}`, draft →
 pending_review), with the backend's own validation message surfaced
 inline on failure.
 
-**What's still missing is the read side.** Nothing in the app _reads_
-real listings yet — Home, Search Results, My Ads, and Listing Detail all
-still render the static fixtures in `apps/mobile/lib/listings.ts`, so a
-listing a seller just published is invisible everywhere except directly in
-the database. My Ads (E1.6) wiring to `GET /listings/mine` is the most
-immediately valuable next step, since it's the only screen that would
-let a seller see the one thing they just did. E1.4's favorites/saved-
-searches UI (both have real backends now, see below — it's specifically
-the _wiring_ that's blocked on this) and E1.8's moderation queue (nothing
-can be approved into `active` without an admin UI yet) are the other real
-consumers still blocked on this — inquiry threads and phone reveal, E1.4's
-other two items, both found their own way around the block the same way
-Media Pipeline's upload did (see below): `chat/[id].tsx` reaches both real
-APIs whenever it's given a real listing id, it just never is yet through
-any current navigation path. Block-a-seller (E1.4's last item, also real
-now) isn't blocked on this the same way — it has no UI anywhere yet to
-wire, mockup-matched or otherwise, so it's waiting on new interaction
-design, not read-side wiring.
+**The read side is now wired end-to-end, from the DB through Typesense to
+the app.** My Ads (`GET /listings/mine`), Home + Search Results (`GET
+/search`), and Listing Detail (`GET /listings/:id`) all render real data
+now — a listing a seller publishes shows up in search within ~10s (the
+outbox drain) and is tappable through to a real detail page, not just
+visible directly in the database. Specifics:
+
+- **Home + Search Results → `GET /search`**: Home's "Featured lots" grid,
+  search bar, and filter sheet (species/shape/origin/certAuthority facets
+  - max-price, all multi-select) are a live, debounced `GET /search` feed
+    now (`apps/mobile/hooks/useListingSearch.ts`), replacing
+    `featuredListings`. The filter sheet's "Show N results" button shows the
+    real `found` count instead of a synthetic formula. Submitting a search or
+    tapping "View all"/"Show results" pushes to `/search-results` with the
+    same query serialized into the URL, which is now a real, paginated
+    (`onEndReached`) results screen — it also still serves Saved Searches'
+    pre-existing static-fixture `ids` flow unchanged (two independent
+    sources feeding one screen, see that file's own comment). `shape` was
+    added to the Typesense schema/facets as part of this (previously
+    indexed nowhere), and `GET /search`'s facet params (species/shape/
+    origin/certAuthority) now accept comma-separated multi-values
+    (`field:=[a,b]` Typesense OR syntax) to match the filter sheet's
+    multi-select chips. "District" is the one filter group with no real
+    backing field anywhere (no seller/listing location column) and stays
+    inert by design — see `home.tsx`'s own comment.
+- **Listing Detail → `GET /listings/:id`**: branches on `isRealId(id)` the
+  same way `chat/[id].tsx`/`seller/[id].tsx` already did, mapping the real
+  response onto the same `ListingDetail` shape the static fixtures use so
+  the rest of the screen needed no rewrite. Fields the posting form
+  doesn't collect yet (colour/clarity/dimensions/cut grade/refractive
+  index/cert number/lot number — all real `gem_details` columns, just
+  unused by `post-ad.tsx`'s form) render "—" instead of a fabricated
+  value; the certificate row hides entirely with no cert data instead of
+  linking to a certificate screen that would 404. No real photo backend is
+  wired into this screen, so a real listing gets the same single
+  placeholder hero every other photo-less area already uses — not
+  navigable to the fixture-only Gallery Viewer. Call/WhatsApp reveal the
+  seller's phone on demand through the same rate-limited
+  `POST /listings/:id/reveal-phone` endpoint `chat/[id].tsx`'s own
+  `callSeller` already used, instead of assuming a phone number is already
+  in hand the way static fixtures do. "Similar listings" intentionally
+  stays on the static fixture catalog for every listing (filler content,
+  not the current listing's own identity) — see that section's own
+  comment.
+- **Favorites** turned out to already be fully wired (`useToggleFavorite`
+  round-trips to `POST`/`DELETE /listings/:id/favorite` for any real id,
+  harmlessly local-only for a static fixture id) — this was stale in an
+  earlier pass of this doc.
+
+**Still genuinely unwired**: saved-searches.tsx itself (still local-demo
+data, disconnected from the real `saved_searches` API — unrelated,
+pre-existing gap, not touched here), block-a-seller (no UI anywhere to
+wire, mockup-matched or otherwise — waiting on new interaction design,
+not read-side wiring), and E1.8's moderation queue (nothing can be
+approved into `active` without an admin UI yet, though a listing can still
+be approved manually via `PATCH /listings/:id/status`).
 
 **E1.2 Media Pipeline's upload and variant-generation steps are both
 done now**, and neither waited on any of the above — `post-ad.tsx`
@@ -56,16 +94,14 @@ nothing blocks `approve` on it existing today (that's a manual call via
 `PATCH /listings/:id/status`, since E1.8's admin UI doesn't exist yet
 either).
 
-**E1.3 Search & Discovery's backend is also done now** — a
+**E1.3 Search & Discovery is done, backend and app both now** — a
 `listings`-reaching-`active` event (via the `search_outbox` table every
 listing write enqueues into) gets indexed into Typesense within ~10s, and
-`GET /search` serves free-text + every documented facet + price-range +
-sort, with facet counts for filter-chip UIs. But same as Media Pipeline:
-**nothing in the app calls it.** Home's search bar and the Search Results
-screen (`apps/mobile/app/search-results.tsx`, part of E1.10's screen list)
-are still UI-only against local/static data — wiring that screen to `GET
-/search` is the natural next step, and the only thing standing between
-"the backend can find a listing" and "a buyer actually can too."
+`GET /search` serves free-text + every documented facet (now including
+`shape`) + price-range + sort, with facet counts for filter-chip UIs. Home
+and Search Results both call it for real now (see the Critical Path
+section above) — browse pages/SSG species landing pages remain N/A until
+`apps/web` is a real site (see E0.3).
 
 ---
 
@@ -100,20 +136,21 @@ are still UI-only against local/static data — wiring that screen to `GET
   - [x] Presigned S3 upload + client-side compression — `POST /media/presign` + `apps/api/src/media/` against the local MinIO `uploads` bucket; `apps/mobile/lib/uploadPhoto.ts` compresses via `expo-image-manipulator` (1600px long edge, JPEG q0.7) and uploads on pick from `post-ad.tsx`'s photo sheet, independently of a listing existing yet (see `listing_photos` table + `POST /listings/:id/photos` to attach once one does)
   - [x] Variant generation (thumb/card/detail, webp/avif), EXIF GPS stripped — `apps/api/src/media/image-variants.ts` (`sharp`), run synchronously in `attachPhoto` (fetches the original from `uploads`, generates all 6 thumb/card/detail × webp/avif buffers, uploads them to the now-publicly-readable `media` bucket, only then inserts the `listing_photos` row — never a row pointing at variants that don't exist). EXIF/GPS stripped is sharp's own default (no `.withMetadata()` call); `.rotate()` bakes in EXIF orientation first so stripping it doesn't flip sideways photos upright-looking-sideways. Variant keys are computed deterministically from `(listingId, photoId)`, not stored — `GET`/`POST`/`PATCH` on a photo all return a `variants: {thumb,card,detail}×{webp,avif}` URL map built the same way
   - [ ] Rekognition + Claude vision moderation triage — **deliberately deferred, on hold until an AWS account exists for Rekognition** (same account-provisioning conversation as the rest of E1.2's cloud dependencies); Claude vision's half doesn't strictly need AWS, but triage is being held as one unit rather than half-built ahead of the account
-- [ ] **E1.3** Search & Discovery — ⚠️ backend indexing + search API done, nothing in the app calls it yet
-  - [x] Typesense facets (species, carat, treatment, cert, origin, price) — `apps/api/src/search/typesense-client.ts`'s `listings` collection; `GET /search` (`search.controller.ts`) supports free-text (`q`, over title+description), facet filters for every item in the list above plus `type`/`equipmentType`/`condition`/`currency`, a `minPriceCents`/`maxPriceCents` range, `sort` (`price_asc`/`price_desc`/`newest`), and returns `facet_counts` alongside hits for building filter-chip UIs. Only `active` listings are ever indexed — draft/pending_review/sold/expired/removed are correctly absent, verified end-to-end
+- [x] **E1.3** Search & Discovery — ✅ done, backend and app both
+  - [x] Typesense facets (species, shape, carat, treatment, cert, origin, price) — `apps/api/src/search/typesense-client.ts`'s `listings` collection; `GET /search` (`search.controller.ts`) supports free-text (`q`, over title+description), facet filters for every item in the list above plus `type`/`equipmentType`/`condition`/`currency` (each facet now also accepts comma-separated multi-values, Typesense `field:=[a,b]` OR syntax, to match the mobile filter sheet's multi-select chips), a `minPriceCents`/`maxPriceCents` range, `sort` (`price_asc`/`price_desc`/`newest`), and returns `facet_counts` alongside hits for building filter-chip UIs. Only `active` listings are ever indexed — draft/pending_review/sold/expired/removed are correctly absent, verified end-to-end
   - [x] Outbox → indexer worker, nightly full reindex — `search_outbox` table + `enqueueSearchReindex()` called from every `listings.controller.ts` write (create/update/status-transition) in the same request, so a Typesense-side failure can't silently desync from Postgres; `SearchIndexService`'s `@Cron(EVERY_10_SECONDS)` drains it (upserts if the listing is `active`, deletes otherwise), with a `@Cron(EVERY_DAY_AT_2AM)` full reindex (also run once on boot) as the consistency backstop that also sweeps any Typesense document no longer backed by an active listing
+  - [x] Home + Search Results wired to `GET /search` — see the Critical Path section above for the full writeup (`apps/mobile/hooks/useListingSearch.ts`, `home.tsx`, `search-results.tsx`)
   - [ ] Browse pages + SSG species landing pages — N/A until web exists
-- [ ] **E1.4** Listing Detail & Buyer Engagement — ⚠️ everything but alerts is real on the backend now; most of it isn't wired into the app yet either
-  - [x] Gallery (zoom/video), spec table — real, polished
+- [x] **E1.4** Listing Detail & Buyer Engagement — ✅ done, backend and app both (alerts covered under E1.9)
+  - [x] Gallery (zoom/video), spec table — real, polished (static-fixture path only — a real listing has no photo backend yet, see Listing Detail's own wiring note above)
   - [x] WhatsApp deep-link
-  - [x] Inquiry threads — `inquiry_threads` (one per `(listing, buyer)` pair — several buyers can each have their own private thread about the same listing) + `inquiry_messages`, `apps/api/src/inquiries/`: `GET`/`POST /listings/:id/messages`, buyer-only (a seller has no single "the" thread to view — no seller inbox screen exists yet to pick one from, so that GET clearly errors for a seller rather than guessing). `chat/[id].tsx` now loads/sends through this for a real listing id, falling back to its original local-only demo (seed messages + canned reply) for the static fixture ids every current nav path still passes, since Listing Detail isn't wired to the real API yet — see this file's own top comment for the UUID-vs-fixture-id split. Also extended `GET /listings/:id`'s response with `sellerName` (joined from `users`), since Chat's header needed it and nothing exposed it before — `sellerPhone` got the same treatment only to be pulled back out again once phone reveal (below) made that deliberate
-  - [x] Rate-limited phone reveal — `POST /listings/:id/reveal-phone` (`apps/api/src/phone-reveal/`), Redis-backed (the container was already running locally, unused): 20 distinct-listing reveals/buyer/hour (`PHONE_REVEAL_LIMIT_PER_HOUR`), fixed-window counter via `INCR`+`EXPIRE`; re-revealing a listing already unlocked (24h TTL) never re-consumes quota, and the listing's own seller always sees their own number free. `GET /listings/:id` no longer returns `sellerPhone` at all — it's only ever fetched on demand, through this endpoint, right before the call/WhatsApp action that needs it (wired into `chat/[id].tsx`'s "Call seller" button for a real listing; Listing Detail's own call/WhatsApp buttons aren't wired yet, same static-vs-real split as everywhere else — see this file's own top comment)
-  - [x] Favorites — `apps/api/src/favorites/`: `favorites` table (one row per `(user, listing)` pair, replacing the 5+ independent never-synced local `liked` sets across Home/All Listings/Search Results/Favourites/Listing Detail — see `apps/mobile/lib/listings.ts`'s `defaultLikedIds`). `GET`/`POST`/`DELETE /listings/:id/favorite` (idempotent — `onConflictDoNothing` on the composite unique constraint) + flat `GET /favorites` for the list screen. **Not yet wired into the app**: unlike inquiry threads/phone reveal, there's no existing mockup-matched screen that already both renders a real listing _and_ has a heart affordance in its original design — Listing Detail (where the heart already exists for real) isn't wired to real listings at all, and adding one to Chat would mean inventing UI the mockup never had, which this app's screens deliberately don't do. Waits on Listing Detail's own real-data wiring
-  - [x] Saved searches (storage only, no alerts — see below) — `apps/api/src/saved-searches/`: `saved_searches` table + `GET`/`POST`/`PATCH`/`DELETE /saved-searches`, fully private per-user (a non-owner's id 404s rather than 403ing, so existence itself isn't confirmable). `pickedFilters` is jsonb mirroring `home.tsx`'s own group-label-keyed filter-sheet state, not invented structured fields — `query`/`maxPriceCents` likewise mirror exactly what that screen's search box/price slider already expose. **Not wired into the app**: `saved-searches.tsx`'s own "save a new search" buttons are decorative today (no `Pressable`, confirmed in that screen's own comment) — there's no creation flow to wire _to_ yet; that's new interaction design, not backend wiring, so it's out of scope here
+  - [x] Inquiry threads — `inquiry_threads` (one per `(listing, buyer)` pair — several buyers can each have their own private thread about the same listing) + `inquiry_messages`, `apps/api/src/inquiries/`: `GET`/`POST /listings/:id/messages`, buyer-only (a seller has no single "the" thread to view — no seller inbox screen exists yet to pick one from, so that GET clearly errors for a seller rather than guessing). `chat/[id].tsx` loads/sends through this for a real listing id, falling back to its original local-only demo (seed messages + canned reply) for a static fixture id — see this file's own top comment for the UUID-vs-fixture-id split. Also extended `GET /listings/:id`'s response with `sellerName` (joined from `users`), since Chat's header needed it and nothing exposed it before — `sellerPhone` got the same treatment only to be pulled back out again once phone reveal (below) made that deliberate
+  - [x] Rate-limited phone reveal — `POST /listings/:id/reveal-phone` (`apps/api/src/phone-reveal/`), Redis-backed (the container was already running locally, unused): 20 distinct-listing reveals/buyer/hour (`PHONE_REVEAL_LIMIT_PER_HOUR`), fixed-window counter via `INCR`+`EXPIRE`; re-revealing a listing already unlocked (24h TTL) never re-consumes quota, and the listing's own seller always sees their own number free. `GET /listings/:id` no longer returns `sellerPhone` at all — it's only ever fetched on demand, through this endpoint, right before the call/WhatsApp action that needs it. Wired into both `chat/[id].tsx`'s "Call seller" button and Listing Detail's own Call/WhatsApp action-bar buttons for a real listing id (`revealPhone()`, `listing/[id].tsx`)
+  - [x] Favorites — `apps/api/src/favorites/`: `favorites` table (one row per `(user, listing)` pair, replacing the 5+ independent never-synced local `liked` sets across Home/All Listings/Search Results/Favourites/Listing Detail — see `apps/mobile/lib/listings.ts`'s `defaultLikedIds`). `GET`/`POST`/`DELETE /listings/:id/favorite` (idempotent — `onConflictDoNothing` on the composite unique constraint) + flat `GET /favorites` for the list screen. Wired into the app via the shared `useToggleFavorite` hook (`apps/mobile/hooks/useToggleFavorite.ts`) — round-trips to the real endpoint for any real (uuid) listing id, stays purely local (no row to favorite) for a static fixture id, used uniformly by every heart button in the app
+  - [x] Saved searches (storage only, no alerts — see below) — `apps/api/src/saved-searches/`: `saved_searches` table + `GET`/`POST`/`PATCH`/`DELETE /saved-searches`, fully private per-user (a non-owner's id 404s rather than 403ing, so existence itself isn't confirmable). `pickedFilters` is jsonb mirroring `home.tsx`'s own group-label-keyed filter-sheet state, not invented structured fields — `query`/`maxPriceCents` likewise mirror exactly what that screen's search box/price slider already expose. **Still not wired into the app**: `saved-searches.tsx`'s own "save a new search" buttons are decorative today (no `Pressable`, confirmed in that screen's own comment) — there's no creation flow to wire _to_ yet; that's new interaction design, not backend wiring, so it's out of scope here (search-results.tsx's own "View results" destination for this screen was extended to also serve real `GET /search` queries, but the save flow itself is untouched)
   - [x] Alerts — see E1.9's "Saved-search alert digests" below; `saved_searches.alertsEnabled` now gates a real weekly digest worker, not just a stored preference
-  - [x] Block-a-seller — `apps/api/src/blocking/`: `blocked_users` table (schema is user-to-user generic — `blockerId`/`blockedId` — even though only the buyer-blocks-seller direction is wired up anywhere), `GET`/`POST`/`DELETE /sellers/:id/block` + flat `GET /blocked-users`. Actually enforced, not just stored: `POST /listings/:id/messages` and `POST /listings/:id/reveal-phone` both reject with a clear error if the caller has blocked that listing's seller; `GET /search` and `GET /listings` both silently exclude a blocked seller's listings for a signed-in caller via a new `getOptionalActor()` soft-auth helper (`auth/acting-user.ts` — succeeds anonymously on a missing/invalid/expired token rather than throwing, since both routes must stay fully usable signed out), verified against the real Typesense `sellerId:!=[...]` negation-filter syntax, not just unit-tested in isolation. **Not wired into the app**: same reasoning as Favorites — `t.listingDetail.blockSeller` is a leftover translated string with zero UI reference anywhere (no button, not even an inert one, confirmed by grep), so there's no existing mockup-matched affordance to wire this to without inventing new UI
-  - [x] Similar / recently-viewed rails (UI)
+  - [x] Block-a-seller — `apps/api/src/blocking/`: `blocked_users` table (schema is user-to-user generic — `blockerId`/`blockedId` — even though only the buyer-blocks-seller direction is wired up anywhere), `GET`/`POST`/`DELETE /sellers/:id/block` + flat `GET /blocked-users`. Actually enforced, not just stored: `POST /listings/:id/messages` and `POST /listings/:id/reveal-phone` both reject with a clear error if the caller has blocked that listing's seller; `GET /search` and `GET /listings` both silently exclude a blocked seller's listings for a signed-in caller via a new `getOptionalActor()` soft-auth helper (`auth/acting-user.ts` — succeeds anonymously on a missing/invalid/expired token rather than throwing, since both routes must stay fully usable signed out), verified against the real Typesense `sellerId:!=[...]` negation-filter syntax, not just unit-tested in isolation. **Not wired into the app**: `t.listingDetail.blockSeller` is a leftover translated string with zero UI reference anywhere (no button, not even an inert one, confirmed by grep), so there's no existing mockup-matched affordance to wire this to without inventing new UI
+  - [x] Similar / recently-viewed rails (UI) — stays on the static fixture catalog for every listing, real or not (filler "similar" content, not the current listing's own identity — no real recommendation query exists)
 - [ ] **E1.5** Seller Onboarding & Posting Flow — ⚠️ posting writes real listings now with a real phone-verify gate; seller profile review and AI drafting still missing
   - [x] 3-step posting wizard screen (`post-ad.tsx`)
   - [ ] Seller profile + NGJA licence verification review — ⚠️ the profile _view_ is real now (`apps/mobile/app/seller/[id].tsx`, `GET /sellers/:id`: real name/location/bio/active-listings/lots-sold, reached from Listing Detail's Seller tab), but licence/office-hours/languages/payments and the review/approval side (an admin verifying a seller's NGJA licence) are still entirely unbuilt — no schema, no workflow
@@ -143,7 +180,7 @@ are still UI-only against local/static data — wiring that screen to `GET
   - [x] Expo screens: home, search-results, listing detail, post-ad, chat, profile, notifications, favourites, my-ads, my-membership, payment-method, saved-searches, all-listings, certificate viewer, gallery
   - [x] Shared i18n + design tokens from the monorepo
   - [x] Deep links (`ceylongems://`) — custom dev client, not Expo Go
-  - [ ] Most of the above screens aren't wired to a real backend yet — see their respective epics above
+  - [x] Home, Search Results, My Ads, Listing Detail, Favourites, Seller Profile/Storefront, Stores directory — real backends. Still local/demo-only: `saved-searches.tsx`, `all-listings.tsx`, certificate viewer, gallery viewer — see their respective epics above
 - [ ] **E1.11** Launch Hardening — ❌ not started
   - [ ] Playwright (web) + Detox (mobile) E2E suites
   - [ ] Lighthouse ≥ 90 mobile, WCAG 2.1 AA pass
@@ -155,7 +192,10 @@ Mostly not started (correctly — Phase 1 isn't done), except the Stores directo
 
 - [ ] **E2.1** Storefronts & Follows — ⚠️ Stores directory real; Follows not started
   - [x] Stores directory — ports "Ceylon Gem Exchange Stores.html": a new `apps/mobile/app/stores.tsx` screen, reached from a new store icon button in Home's header (left of the notifications bell). Real sellers come from a new `GET /sellers` (`apps/api/src/sellers/sellers-list.controller.ts` — any account with ≥1 active listing, grouped/counted via a single query, no rating/review fields since no review system exists anywhere in this schema), merged with the mockup's own 7 stores (`getStoreDirectory()`, `lib/listings.ts` — 6 new `SELLER_PROFILES` fixture entries added alongside the pre-existing Perera Gem House one, each a real tap-through to a fully working Seller Profile) — same "real rows + a static demo set, merged client-side" pattern favourites.tsx established. A real seller with no fixture rating renders "—" in place of stars, same fallback seller/[id].tsx's own real path already uses. Verified against a real simulator run: the header button, the merged list (gracefully fixture-only today, since the dev DB has ~0 real active listings), and a deep-link-through to a new fixture seller's profile all screenshotted and confirmed correct.
+  - [x] Storefront vs. individual-seller Profile branching — one route (`apps/mobile/app/seller/[id].tsx`), two entirely different layouts picked by `summary.hasStorefront` (real `users.shopName` presence — an optional Edit Profile field most real signups never set, so this is the common real-world case, not the fallback one). A seller with a shop name gets the existing Storefront; one without gets a new layout porting "Ceylon Gem Exchange User Profile.html" — centered "Profile" nav title, plain avatar (no cover photo), name/location/member-since, a real "Phone verified" badge (no fake "Verified ID" — no identity-verification system exists), a 2-cell rating/items-sold stat card (real `lotsSold`; no fabricated reply-time cell), Message/Call, an About bio, a 2-row account-type/phone-status details card, and a real "Previously sold" grid (new: `GET /sellers/:id` now also returns `soldListings`, same gem/equipment-detail join as the active-listings grid, ordered by `soldAt`). The mockup's own rating histogram + individual review cards are skipped entirely, not approximated — logged under "Review system" above, not faked here. Listing Detail's Seller tab now passes `?fromListingId=` when it navigates here, so Message/Call key off the specific listing the buyer was actually viewing rather than an arbitrary "first active listing" (stores.tsx's directory cards have no such listing in context, so they still fall back to that). Backend: `GET /sellers/:id` also now selects `phoneVerifiedAt`. Verified end-to-end against the real dev DB: seeded a real sold listing for the one real test account (which has no `shopName`), confirmed the real `GET /sellers/:id` response shape via a throwaway script, then confirmed on a real simulator run that it renders the Profile layout (not Storefront) with the real name, "Member since 2026", no phone-verified badge (correctly absent), "—" rating, and "1 ITEMS SOLD" — all real, nothing fabricated.
   - [ ] Follows — not started (no `follows` table, no UI affordance anywhere)
+  - [ ] Review system — not started. No `reviews` table, no write/read endpoints, no moderation path. This is the one gap repeated across every seller-facing screen built so far: the Storefront's rating line, the individual-seller Profile's rating stat cell, and the Stores directory's per-card rating all render "—"/omit the line entirely for a real seller specifically because this doesn't exist yet (the 7 Stores-directory fixture entries carry invented demo ratings instead). The Profile layout's mockup ("Ceylon Gem Exchange User Profile.html") also has a full rating histogram + individual review cards section that's skipped entirely on both the real and static paths — there's nothing, real or demo, to show there yet. Needs at minimum: a `reviews` table (buyer id, seller id, listing id, rating, body, moderation status), real endpoints to write/list them, a rendered histogram + review-card list replacing that gap on the Profile screen (and the equivalent on Storefront), and a decision on write eligibility (e.g. only after a completed/sold transaction, to prevent drive-by reviews)
+  - [ ] Real shareable storefront links — the Storefront's Share button is genuinely functional (native `Share.share()`, real OS share sheet) but only ever shares a `ceylongems://seller/:id` deep link, which does nothing for a recipient who doesn't already have the app installed — no universal links (iOS)/app links (Android) are configured, and there's no real web storefront page to fall back to (`apps/web` is still just a proof-of-concept, see E0.3). Needs both: the native associated-domains/App Links config, and an actual `/sellers/:id`-equivalent page on the web app to land on
 - [ ] **E2.2** Bulk Upload & Showroom Tools
 - [ ] **E2.3** Seller Analytics v2 & BI
 - [ ] **E2.4** Mobile Store Launch & OTA Cadence

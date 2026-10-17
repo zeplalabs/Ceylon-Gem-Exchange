@@ -26,3 +26,15 @@ export function formatAmount(amountUsd: number, option: CurrencyOption): string 
   const converted = Math.round(amountUsd * option.usdRate)
   return `${option.symbol} ${converted.toLocaleString('en-US')}`
 }
+
+// A real listing's own `priceCurrency` (e.g. "LKR") needs converting back
+// to USD before it can go through `formatAmount`'s `amountUsd` param, the
+// same way `useCurrency()`'s own `formatPrice` does for the active display
+// currency — this is that same lookup for an arbitrary listing's currency
+// instead. `currencies` is the full `GET /currencies` catalog from
+// `useCurrency()`, not the active one; `null` (still loading) or an
+// unrecognized code both fall back to 1 (treat as already-USD) rather than
+// throwing, same spirit as `FALLBACK_CURRENCY`.
+export function usdRateFor(currencies: CurrencyOption[] | null, code: string): number {
+  return currencies?.find((c) => c.code === code)?.usdRate ?? 1
+}

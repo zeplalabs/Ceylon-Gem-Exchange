@@ -160,6 +160,7 @@ export interface Dictionary {
     call: string
     chat: string
     callSeller: string
+    callNotSupported: string
     revealPhone: string
     reportListing: string
     blockSeller: string
@@ -218,10 +219,8 @@ export interface Dictionary {
   }
   sellerProfile: {
     title: string
-    favouriteSeller: string
     shareLabel: string
     coverPhotoLabel: string
-    logoLabel: string
     galleryTitle: string
     chatWithSeller: string
     chat: string
@@ -230,9 +229,24 @@ export interface Dictionary {
     searchInPrefix: string
     allChipLabel: string
     stonesSuffix: string
-    soldSuffix: string
     reviewsSuffix: string
     sortNewest: string
+    /** Nav title for the individual-seller (no-storefront) Profile layout — the Storefront layout has no nav title at all, see that branch's own comment. */
+    profileTitle: string
+    /** Contains a literal `{{year}}` marker. */
+    memberSince: string
+    phoneVerifiedBadge: string
+    statRating: string
+    statItemsSold: string
+    message: string
+    aboutTitle: string
+    accountTypeLabel: string
+    individualLabel: string
+    phoneLabel: string
+    verifiedLabel: string
+    notVerifiedLabel: string
+    previouslySoldTitle: string
+    soldBadge: string
   }
   chats: {
     title: string
@@ -489,6 +503,10 @@ export interface Dictionary {
     emptySubtitle: string
   }
   searchResults: {
+    /** Fallback nav title when no `q` was searched (e.g. "View all" with no active filters). */
+    title: string
+    /** Contains a literal `{{count}}` marker, interpolated at the call site with the real `GET /search` `found` total. */
+    resultsCount: string
     emptyTitle: string
     emptySubtitle: string
   }
@@ -742,6 +760,7 @@ export const en: Dictionary = {
     call: 'Call',
     chat: 'Chat',
     callSeller: 'Call seller',
+    callNotSupported: "This device can't place calls — try it on a phone instead.",
     revealPhone: 'Reveal phone number',
     reportListing: 'Report this listing',
     blockSeller: 'Block seller',
@@ -801,10 +820,8 @@ export const en: Dictionary = {
   },
   sellerProfile: {
     title: 'Seller',
-    favouriteSeller: 'Favourite this seller',
     shareLabel: 'Share this store',
     coverPhotoLabel: 'Shop cover photo',
-    logoLabel: 'logo',
     galleryTitle: 'Shop gallery',
     chatWithSeller: 'Chat with seller',
     chat: 'Chat',
@@ -813,9 +830,22 @@ export const en: Dictionary = {
     searchInPrefix: 'Search in',
     allChipLabel: 'All',
     stonesSuffix: 'stones',
-    soldSuffix: 'sold',
     reviewsSuffix: 'reviews',
     sortNewest: 'Newest',
+    profileTitle: 'Profile',
+    memberSince: 'Member since {{year}}',
+    phoneVerifiedBadge: 'Phone verified',
+    statRating: 'RATING',
+    statItemsSold: 'ITEMS SOLD',
+    message: 'Message',
+    aboutTitle: 'About',
+    accountTypeLabel: 'Account type',
+    individualLabel: 'Individual',
+    phoneLabel: 'Phone',
+    verifiedLabel: 'Verified',
+    notVerifiedLabel: 'Not verified',
+    previouslySoldTitle: 'Previously sold',
+    soldBadge: 'Sold',
   },
   chats: {
     title: 'Chats',
@@ -1072,6 +1102,8 @@ export const en: Dictionary = {
     emptySubtitle: 'Try a different search.',
   },
   searchResults: {
+    title: 'Search results',
+    resultsCount: '{{count}} found',
     emptyTitle: 'No matches yet',
     emptySubtitle: "We'll show new listings here as they match this search.",
   },

@@ -1,10 +1,12 @@
+import { useAuth } from '@clerk/expo'
 import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { LinearGradient } from 'expo-linear-gradient'
 import * as Linking from 'expo-linking'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useVideoPlayer, VideoView, type VideoSource } from 'expo-video'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -38,11 +40,99 @@ import { LiveGradientBackground } from '../../components/primitives/LiveGradient
 import { useFontFamily } from '../../hooks/useFontFamily'
 import { useToggleFavorite } from '../../hooks/useToggleFavorite'
 import { useTranslation } from '../../hooks/useTranslation'
-import { featuredListings, getListingDetail } from '../../lib/listings'
+import { API_URL } from '../../lib/apiUrl'
+import { usdRateFor, type CurrencyOption } from '../../lib/currency'
+import { isRealId } from '../../lib/ids'
+import { badgeForDetails, specForDetails, type ListingSpecDetails } from '../../lib/listingSpec'
+import { featuredListings, getListingDetail, type ListingDetail } from '../../lib/listings'
 import { getListingMedia } from '../../lib/media'
 import { useCurrency } from '../../providers/CurrencyProvider'
 import { useFavorites } from '../../providers/FavoritesProvider'
 import { useGemTone } from '../../providers/GemToneProvider'
+
+/** Display-only extras `ListingSpecDetails` doesn't carry — real columns on `gem_details` the mockup's own fixture renders but `post-ad.tsx`'s posting form never collects (color/clarity/dimensions/cutGrade/refractiveIndex/certNumber/certIssuedAt/lotNumber), so a real listing has these as `null` today. */
+interface RealGemExtras {
+  color?: string | null
+  clarity?: string | null
+  origin?: string | null
+  treatment?: string | null
+  dimensions?: string | null
+  cutGrade?: string | null
+  refractiveIndex?: string | null
+  certNumber?: string | null
+  certIssuedAt?: string | null
+  lotNumber?: string | null
+}
+
+interface RealListingResponse {
+  id: string
+  type: 'gem' | 'equipment'
+  title: string
+  description: string | null
+  priceAmountCents: number
+  priceCurrency: string
+  sellerId: string
+  sellerName: string | null
+  publishedAt: string | null
+  createdAt: string
+  details: (ListingSpecDetails & RealGemExtras) | null
+}
+
+const MISSING = '—'
+
+function formatListedDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+// Builds the same `ListingDetail` shape the static fixtures use, from a
+// real `GET /listings/:id` response, so the rest of this screen (already
+// written against `ListingDetail`) renders either source unchanged. Real
+// columns the posting form doesn't collect yet (see RealGemExtras) fall
+// back to `MISSING` rather than inventing plausible-looking demo values —
+// this is the same "honest gap, not a fabricated number" bar the rest of
+// the app holds to (ratings, hours, etc). `sellerPhone` is deliberately
+// left blank — `GET /listings/:id` never returns it (see that endpoint's
+// own comment); `callSeller`/`messageOnWhatsApp` below reveal it on demand
+// through the rate-limited endpoint instead, same pattern chat/[id].tsx
+// already established. No real photo backend is wired into this screen —
+// `photoCount: 0` renders the same single placeholder hero every other
+// photo-less area of the app uses (see the `media` fallback below).
+function mapRealListing(
+  data: RealListingResponse,
+  currencies: CurrencyOption[] | null,
+): ListingDetail {
+  const d = data.details
+  return {
+    id: data.id,
+    name: data.title,
+    spec: specForDetails(data.type, d),
+    priceUsd: data.priceAmountCents / 100 / usdRateFor(currencies, data.priceCurrency),
+    badge: badgeForDetails(data.type, d),
+    lotNumber: d?.lotNumber ?? MISSING,
+    weight: d?.caratWeight != null ? `${d.caratWeight} ct` : MISSING,
+    shape: d?.shape ?? MISSING,
+    colour: d?.color ?? MISSING,
+    clarity: d?.clarity ?? MISSING,
+    origin: d?.origin ?? MISSING,
+    treatment: d?.treatment ?? MISSING,
+    dimensions: d?.dimensions ?? MISSING,
+    cutGrade: d?.cutGrade ?? MISSING,
+    refractiveIndex: d?.refractiveIndex ?? MISSING,
+    listedDate: formatListedDate(data.publishedAt ?? data.createdAt),
+    description: data.description ?? '',
+    sellerName: data.sellerName ?? MISSING,
+    sellerMeta: MISSING,
+    sellerPhone: '',
+    sellerId: data.sellerId,
+    certNumber: d?.certNumber ?? MISSING,
+    certIssued: d?.certIssuedAt ? `Issued ${formatListedDate(d.certIssuedAt)}` : MISSING,
+    photoCount: 0,
+  }
+}
 
 type Tab = 'about' | 'specs' | 'seller'
 
@@ -104,33 +194,38 @@ function HeroVideoSlide({
   )
 }
 
-// Reached by tapping a ListingCard on Home (or another listing's "Similar
-// listings" card, which pushes a fresh copy of this same route). Ports
-// "Ceylon Gem Exchange Listing Detail.dc.html". No real photo backend
-// exists yet (same situation as ListingCard/Home's hero — see their own
-// comments), so photo slides render the same tinted-glass + GemIcon
-// placeholder; the one video shot autoplays a real bundled demo clip (see
-// HeroVideoSlide above) standing in for actual seller-uploaded video.
-// `@nandorojo/galeria` (CLAUDE.md's mandated pinch-zoom/pan-to-close
-// viewer) stays deferred for photos until there's a real one worth
-// zooming into. The favorite toggle goes through the shared
-// FavoritesProvider now, so liking a (static-fixture) listing here shows
-// up on the real Favourites screen too — though `listing` itself is only
-// ever the static fixture lookup below; a real UUID id still falls
-// through to the "not found" branch, same pre-existing gap docs/
-// remaining-work.md already tracks as Listing Detail's own real-data
-// wiring, out of scope here.
+// Reached by tapping a ListingCard on Home/Search Results (real UUID ids,
+// now that both are wired to `GET /search`), a Storefront/Profile listing
+// grid, or another listing's "Similar listings" card (always a static
+// fixture id — see below). Ports "Ceylon Gem Exchange Listing Detail.dc.html".
+// Real vs. static branches on `isRealId(id)` (see mapRealListing's own
+// comment for exactly which fields a real listing can/can't populate); no
+// real photo backend exists yet either way, so photo slides render the
+// same tinted-glass + GemIcon placeholder (`media` falls back to one
+// synthetic placeholder slide when a real listing has no actual photos —
+// see below), and the one video shot (static fixtures only) autoplays a
+// real bundled demo clip (see HeroVideoSlide above) standing in for actual
+// seller-uploaded video. `@nandorojo/galeria` (CLAUDE.md's mandated
+// pinch-zoom/pan-to-close viewer) stays deferred for photos until there's
+// a real one worth zooming into. The favorite toggle goes through the
+// shared FavoritesProvider, so liking either a real or a static-fixture
+// listing here shows up on the real Favourites screen. "Similar listings"
+// and the certificate-viewer link are left on the static fixture catalog
+// for every listing, real or not (see their own comments below) — a real
+// "similar" recommendation and a real certificate record are both out of
+// scope here.
 export default function ListingDetailScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const listing = getListingDetail(id)
+  const isReal = isRealId(id)
   const { width: windowWidth } = useWindowDimensions()
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
-  const { formatPrice } = useCurrency()
+  const { formatPrice, currencies } = useCurrency()
+  const { getToken } = useAuth()
   const iconSoft = `rgba(${tone.rim},0.75)`
   // Matches `body`'s own paddingHorizontal (22 each side) — the hero
   // gallery isn't measured via onLayout since it's always exactly the
@@ -143,6 +238,39 @@ export default function ListingDetailScreen() {
   const toggleFavorite = useToggleFavorite()
   const fav = likedIds.has(id)
   const heroScrollRef = useRef<ScrollView>(null)
+
+  // `undefined` = still loading (or not a real id at all — see `listing`
+  // below), `null` = fetched and genuinely not found. Kept separate from
+  // the static lookup so a real listing gets its own loading state instead
+  // of flashing the "not found" view while the request is in flight.
+  const [rawReal, setRawReal] = useState<RealListingResponse | null | undefined>(undefined)
+  const [revealingPhone, setRevealingPhone] = useState(false)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isReal) return
+    let cancelled = false
+    fetch(`${API_URL}/listings/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`No listing with id ${id}`)
+        return res.json() as Promise<RealListingResponse>
+      })
+      .then((data) => {
+        if (!cancelled) setRawReal(data)
+      })
+      .catch(() => {
+        if (!cancelled) setRawReal(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, isReal])
+
+  const listing = useMemo(() => {
+    if (!isReal) return getListingDetail(id)
+    return rawReal ? mapRealListing(rawReal, currencies) : undefined
+  }, [isReal, id, rawReal, currencies])
+  const isLoadingReal = isReal && rawReal === undefined
 
   function goToImage(i: number) {
     setActiveImage(i)
@@ -178,21 +306,85 @@ export default function ListingDetailScreen() {
               radius={14}
             />
           </View>
+          {isLoadingReal ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={neutral.white} />
+            </View>
+          ) : null}
         </SafeAreaView>
       </LiveGradientBackground>
     )
   }
 
-  const media = getListingMedia(listing)
+  // A real listing has no real photos yet (see mapRealListing's own
+  // comment) — `getListingMedia` would return an empty array for its
+  // `photoCount: 0`, so the hero/thumbnails below would render as an empty
+  // strip rather than the glass+GemIcon placeholder every other
+  // photo-less area of the app shows. One synthetic, non-navigable 'photo'
+  // entry keeps the exact same carousel/dots/thumbnail JSX working
+  // unchanged for both branches.
+  const media = isReal
+    ? [{ title: listing.name, kind: 'photo' as const }]
+    : getListingMedia(listing)
+  // "Similar listings" stays on the static fixture catalog for every
+  // listing, real or not — there's no real "find similar active listings"
+  // query behind this yet (out of scope here; it's filler content, not
+  // the current listing's own identity), and the static catalog's ids are
+  // always valid `/listing/:id` destinations either way.
   const similar = featuredListings.filter((item) => item.id !== listing.id).slice(0, 4)
   const price = formatPrice(listing.priceUsd)
+  // Filters out whatever a real listing doesn't have (see mapRealListing)
+  // instead of literally rendering "— · — · — certified" — every static
+  // fixture has all three, so this is a no-op there.
+  const titleMeta = [
+    listing.origin !== MISSING ? listing.origin.split(',')[0] : null,
+    listing.treatment !== MISSING ? listing.treatment : null,
+    listing.certNumber !== MISSING ? `${listing.certNumber.split(' ')[0]} certified` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const hasCertificate = listing.certNumber !== MISSING
 
-  function callSeller() {
-    Linking.openURL(`tel:${listing!.sellerPhone}`).catch(() => {})
+  // Static-fixture listings already have a phone number in hand (that demo
+  // data was never gated). A real listing doesn't — `GET /listings/:id`
+  // deliberately omits it — so this reveals it on demand through the
+  // rate-limited endpoint right before dialing/messaging, same pattern
+  // chat/[id].tsx's own `callSeller` already established.
+  async function revealPhone(): Promise<string | null> {
+    if (listing!.sellerPhone) return listing!.sellerPhone
+    if (!isReal || revealingPhone) return null
+    setPhoneError(null)
+    setRevealingPhone(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`${API_URL}/listings/${id}/reveal-phone`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null)
+        throw new Error(errBody?.message ?? `Couldn't get the seller's number (${res.status})`)
+      }
+      const data = (await res.json()) as { phone: string | null }
+      if (!data.phone) throw new Error("This seller hasn't added a phone number yet")
+      return data.phone
+    } catch (err) {
+      setPhoneError(err instanceof Error && err.message ? err.message : t.common.genericError)
+      return null
+    } finally {
+      setRevealingPhone(false)
+    }
   }
 
-  function messageOnWhatsApp() {
-    Linking.openURL(`https://wa.me/${listing!.sellerPhone.replace('+', '')}`).catch(() => {})
+  async function callSeller() {
+    const phone = await revealPhone()
+    if (phone) Linking.openURL(`tel:${phone}`).catch(() => {})
+  }
+
+  async function messageOnWhatsApp() {
+    const phone = await revealPhone()
+    if (phone) Linking.openURL(`https://wa.me/${phone.replace('+', '')}`).catch(() => {})
   }
 
   return (
@@ -207,7 +399,7 @@ export default function ListingDetailScreen() {
             radius={14}
           />
           <Text style={[styles.navTitle, { fontFamily: fonts.extrabold }]} numberOfLines={1}>
-            {listing.lotNumber}
+            {listing.lotNumber !== MISSING ? listing.lotNumber : listing.name}
           </Text>
           <PressableScale
             onPress={() => toggleFavorite(id)}
@@ -229,6 +421,8 @@ export default function ListingDetailScreen() {
             )}
           </PressableScale>
         </View>
+
+        {phoneError ? <Text style={styles.phoneError}>{phoneError}</Text> : null}
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View
@@ -268,7 +462,13 @@ export default function ListingDetailScreen() {
                   ) : (
                     <PressableScale
                       key={i}
-                      onPress={() => router.push(`/gallery/${listing.id}?index=${i}`)}
+                      // Real listings have no actual Gallery Viewer content
+                      // to open yet (see `media`'s own comment) — the
+                      // placeholder slide stays visually identical but
+                      // isn't a tap target to a dead-end screen.
+                      onPress={
+                        isReal ? undefined : () => router.push(`/gallery/${listing.id}?index=${i}`)
+                      }
                       accessibilityLabel={`${listing.name} photo ${i + 1}`}
                       style={{ width: galleryWidth, height: 280 }}
                     >
@@ -369,10 +569,9 @@ export default function ListingDetailScreen() {
           <View style={styles.titleRow}>
             <View style={styles.titleCol}>
               <Text style={[styles.title, { fontFamily: fonts.extrabold }]}>{listing.name}</Text>
-              <Text style={[styles.titleMeta, { fontFamily: fonts.semibold }]}>
-                {listing.origin.split(',')[0]} · {listing.treatment} ·{' '}
-                {listing.certNumber.split(' ')[0]} certified
-              </Text>
+              {titleMeta ? (
+                <Text style={[styles.titleMeta, { fontFamily: fonts.semibold }]}>{titleMeta}</Text>
+              ) : null}
               <View style={styles.sellerRow}>
                 <PersonIcon size={13} color={iconSoft} strokeWidth={1.8} />
                 <Text style={[styles.sellerRowLabel, { fontFamily: fonts.bold }]}>
@@ -447,7 +646,9 @@ export default function ListingDetailScreen() {
 
             {tab === 'seller' ? (
               <PressableScale
-                onPress={() => router.push(`/seller/${listing.sellerId}`)}
+                onPress={() =>
+                  router.push(`/seller/${listing.sellerId}?fromListingId=${listing.id}`)
+                }
                 accessibilityLabel={`${listing.sellerName}, ${t.sellerProfile.title}`}
                 style={styles.sellerPanelRow}
               >
@@ -467,33 +668,35 @@ export default function ListingDetailScreen() {
             ) : null}
           </GlassSurface>
 
-          <PressableScale
-            onPress={() => router.push(`/certificate/${listing.id}`)}
-            accessibilityLabel={`View ${listing.certNumber} certificate`}
-          >
-            <GlassSurface clarity={55} radius={20} style={styles.certRow}>
-              <View
-                style={[
-                  styles.certIconTile,
-                  {
-                    backgroundColor: `rgba(${tone.rim},0.14)`,
-                    borderColor: `rgba(${tone.rim},0.28)`,
-                  },
-                ]}
-              >
-                <ShieldCheckIcon size={17} color={iconSoft} strokeWidth={1.5} />
-              </View>
-              <View style={styles.certTextCol}>
-                <Text style={[styles.certNumber, { fontFamily: fonts.bold }]}>
-                  {listing.certNumber}
-                </Text>
-                <Text style={[styles.certIssued, { fontFamily: fonts.semibold }]}>
-                  {listing.certIssued}
-                </Text>
-              </View>
-              <ChevronRightIcon />
-            </GlassSurface>
-          </PressableScale>
+          {hasCertificate ? (
+            <PressableScale
+              onPress={() => router.push(`/certificate/${listing.id}`)}
+              accessibilityLabel={`View ${listing.certNumber} certificate`}
+            >
+              <GlassSurface clarity={55} radius={20} style={styles.certRow}>
+                <View
+                  style={[
+                    styles.certIconTile,
+                    {
+                      backgroundColor: `rgba(${tone.rim},0.14)`,
+                      borderColor: `rgba(${tone.rim},0.28)`,
+                    },
+                  ]}
+                >
+                  <ShieldCheckIcon size={17} color={iconSoft} strokeWidth={1.5} />
+                </View>
+                <View style={styles.certTextCol}>
+                  <Text style={[styles.certNumber, { fontFamily: fonts.bold }]}>
+                    {listing.certNumber}
+                  </Text>
+                  <Text style={[styles.certIssued, { fontFamily: fonts.semibold }]}>
+                    {listing.certIssued}
+                  </Text>
+                </View>
+                <ChevronRightIcon />
+              </GlassSurface>
+            </PressableScale>
+          ) : null}
 
           <View style={styles.similarHeader}>
             <Text style={[styles.similarTitle, { fontFamily: fonts.extrabold }]}>
@@ -562,6 +765,7 @@ export default function ListingDetailScreen() {
           >
             <PressableScale
               onPress={callSeller}
+              disabled={revealingPhone}
               style={styles.actionButton}
               accessibilityLabel={t.listingDetail.call}
             >
@@ -582,6 +786,7 @@ export default function ListingDetailScreen() {
             </PressableScale>
             <PressableScale
               onPress={messageOnWhatsApp}
+              disabled={revealingPhone}
               style={styles.actionButton}
               accessibilityLabel={t.listingDetail.whatsapp}
             >
@@ -610,6 +815,18 @@ function SpecCell({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phoneError: {
+    marginTop: 4,
+    marginHorizontal: 22,
+    textAlign: 'center',
+    fontSize: 12,
+    color: neutral.danger.textStrong,
   },
   // Exact values from the mockup's default glassClarity (55)/density
   // ("Airy") computations — not the general spacing/fontSize/radii scales,

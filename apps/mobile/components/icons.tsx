@@ -1327,6 +1327,22 @@ export function PinIcon({ size = 17, color = '#fff', strokeWidth = 1.7 }: IconPr
   )
 }
 
+// Storefront's "Directions" button — a compass-needle arrow, exact path
+// ported from "Ceylon Gem Exchange Storefront.html" (`M18 2 2 9l7 2 2 7z`,
+// a 20x20 viewBox — not the same shape as SendIcon's straight-up arrow).
+export function NavigationIcon({ size = 16, color = '#fff', strokeWidth = 1.8 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M18 2 2 9l7 2 2 7z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
 // Delete Account's warning seal — a triangle exclamation mark, exact path
 // ported from that mockup. Distinct from `ShieldAlertIcon` (a rounded
 // shield outline, used for Post Ad's moderation notice and Chat's Report

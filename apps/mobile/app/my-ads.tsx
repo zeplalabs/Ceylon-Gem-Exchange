@@ -550,11 +550,20 @@ export default function MyAdsScreen() {
                                 </Text>
                               </LinearGradient>
                             ) : (
-                              <View style={[styles.actionPill, styles.actionPillSecondary]}>
+                              <View
+                                style={[
+                                  styles.actionPill,
+                                  action.key === 'deactivate'
+                                    ? styles.actionPillDanger
+                                    : styles.actionPillSecondary,
+                                ]}
+                              >
                                 <Text
                                   style={[
                                     styles.actionLabel,
-                                    styles.actionLabelSecondary,
+                                    action.key === 'deactivate'
+                                      ? styles.actionLabelDanger
+                                      : styles.actionLabelSecondary,
                                     { fontFamily: fonts.extrabold },
                                   ]}
                                 >
@@ -806,12 +815,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.09)',
     borderColor: 'rgba(255,255,255,0.18)',
   },
+  // "Deactivate" only — same semantic danger palette Button's own
+  // `danger` prop and delete-confirm copy already use elsewhere, not a
+  // one-off color. Still a soft/secondary treatment (not the full
+  // Button-danger gradient), since deactivating is reversible (see
+  // listings.controller.ts's `reactivate` transition) — just worth
+  // visually flagging more than a plain neutral pill would.
+  actionPillDanger: {
+    backgroundColor: neutral.danger.surfaceStrong,
+    borderColor: neutral.danger.border,
+  },
   actionLabel: {
     fontSize: 11,
     color: neutral.white,
   },
   actionLabelSecondary: {
     color: 'rgba(255,255,255,0.72)',
+  },
+  actionLabelDanger: {
+    color: neutral.danger.textStrong,
   },
   emptyPanel: {
     alignItems: 'center',

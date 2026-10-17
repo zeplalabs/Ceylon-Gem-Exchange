@@ -552,6 +552,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
+    // The unselected variant's own GlassSurface already gets this via its
+    // `radius` prop, but the selected variant's plain LinearGradient has
+    // no other source of rounding — without it, a selected chip renders
+    // sharp-cornered next to every unselected (properly pill-shaped) one.
+    borderRadius: radii.full,
   },
   chipLabel: {
     fontSize: fontSize.sm,

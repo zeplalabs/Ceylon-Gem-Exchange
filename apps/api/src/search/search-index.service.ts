@@ -11,6 +11,7 @@ export interface ListingDocument {
   title: string
   description?: string
   species?: string
+  shape?: string
   caratWeight?: number
   treatment?: string
   certAuthority?: string
@@ -44,6 +45,7 @@ async function buildDocument(listingId: string): Promise<ListingDocument | null>
     title: listing.title,
     description: listing.description ?? undefined,
     species: gem?.species ?? undefined,
+    shape: gem?.shape ?? undefined,
     caratWeight: gem?.caratWeight ?? undefined,
     treatment: gem?.treatment ?? undefined,
     certAuthority: gem?.certAuthority ?? undefined,

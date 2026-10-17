@@ -5,18 +5,26 @@ import { equipmentDetails, gemDetails, listings, users } from '../db/schema'
 
 // Public, unauthenticated — browsing a seller's profile (apps/mobile/app/
 // seller/[id].tsx) works the same signed out as browsing a listing does.
-// `lotsSold`/`activeListingsCount` are real counts; everything else the
-// Storefront mockup shows beyond what's returned here (star rating,
-// reviews, reply time, cover/logo/gallery photos, shop hours/address
-// beyond `location`) has no backing column anywhere in this schema yet —
-// that's its own follow-up ("Seller profile + NGJA licence verification
-// review" in docs/remaining-work.md), not silently faked here. The client
-// renders those as fixed, clearly-demo trim around this real data, same
-// reasoning as my-membership.tsx's entirely-demo billing state. `listings`
-// is joined with gem/equipment details — same pattern as `GET
-// /listings/mine`/`GET /favorites` — so the storefront's own stone grid
-// can show a real spec line and (for gem listings) a real species-based
-// category breakdown, not just a bare title/price.
+// Backs two different client layouts off the same response: a `shopName`
+// seller renders the Storefront (cover/address/gallery), one with no
+// `shopName` renders the simpler individual-seller Profile (ports "Ceylon
+// Gem Exchange User Profile.html") — `shopName`'s own presence/absence is
+// the entire "has a storefront" test, no separate flag needed.
+// `lotsSold`/`activeListingsCount`/`phoneVerifiedAt` are real;
+// everything else either mockup shows beyond what's returned here (star
+// rating, reviews, reply time, cover/logo/gallery photos, "Verified ID",
+// languages, last-active, shop hours/address beyond `location`) has no
+// backing column anywhere in this schema yet — that's its own follow-up
+// ("Seller profile + NGJA licence verification review" /
+// "Review system" in docs/remaining-work.md), not silently faked here.
+// The client renders those as fixed, clearly-demo trim around this real
+// data (Storefront path only — the Profile path just omits a row/section
+// entirely when it has nothing real to show, same bar `lotsSold`/rating
+// already hold elsewhere). `listings`/`soldListings` are both joined with
+// gem/equipment details — same pattern as `GET /listings/mine`/`GET
+// /favorites` — so either grid can show a real spec line and (for gem
+// listings) a real species-based category breakdown, not just a bare
+// title/price.
 @Controller('sellers/:id')
 export class SellerProfileController {
   @Get()
@@ -29,6 +37,7 @@ export class SellerProfileController {
         location: users.location,
         bio: users.bio,
         createdAt: users.createdAt,
+        phoneVerifiedAt: users.phoneVerifiedAt,
       })
       .from(users)
       .where(eq(users.id, id))
@@ -37,7 +46,7 @@ export class SellerProfileController {
       throw new NotFoundException(`No seller with id ${id}`)
     }
 
-    const [[activeRow], [soldRow], activeListingRows] = await Promise.all([
+    const [[activeRow], [soldRow], activeListingRows, soldListingRows] = await Promise.all([
       db
         .select({ value: count() })
         .from(listings)
@@ -52,7 +61,22 @@ export class SellerProfileController {
         .leftJoin(gemDetails, eq(gemDetails.listingId, listings.id))
         .leftJoin(equipmentDetails, eq(equipmentDetails.listingId, listings.id))
         .where(and(eq(listings.sellerId, id), eq(listings.status, 'active')))
-        .orderBy(desc(listings.publishedAt)),
+        // Newest-created first — the storefront's stone grid shows a
+        // "Newest" sort label (apps/mobile/app/seller/[id].tsx) with no
+        // other sort mode to switch to yet, so this is the one order that
+        // needs to actually hold. `createdAt` (not `publishedAt`, which
+        // only moves on `approve` and stays frozen through relist/renew)
+        // so a relisted older item doesn't jump back to the top.
+        .orderBy(desc(listings.createdAt)),
+      db
+        .select({ listing: listings, gem: gemDetails, equipment: equipmentDetails })
+        .from(listings)
+        .leftJoin(gemDetails, eq(gemDetails.listingId, listings.id))
+        .leftJoin(equipmentDetails, eq(equipmentDetails.listingId, listings.id))
+        .where(and(eq(listings.sellerId, id), eq(listings.status, 'sold')))
+        // The individual-seller Profile's own "Previously sold" grid —
+        // most recently sold first.
+        .orderBy(desc(listings.soldAt)),
     ])
 
     return {
@@ -60,6 +84,10 @@ export class SellerProfileController {
       activeListingsCount: activeRow?.value ?? 0,
       lotsSold: soldRow?.value ?? 0,
       listings: activeListingRows.map((row) => ({
+        ...row.listing,
+        details: row.listing.type === 'gem' ? row.gem : row.equipment,
+      })),
+      soldListings: soldListingRows.map((row) => ({
         ...row.listing,
         details: row.listing.type === 'gem' ? row.gem : row.equipment,
       })),

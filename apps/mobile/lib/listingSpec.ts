@@ -27,3 +27,14 @@ export function specForDetails(
   }
   return [details.brand ?? details.equipmentType, details.condition].filter(Boolean).join(' · ')
 }
+
+// `ListingCard`'s `badge` prop has no real backing concept (it's a
+// fixture-only promotional label — "Live"/"Rare"/"New"/"Hot") — for a real
+// listing this falls back to its species/equipment-type instead, same
+// convention `seller/[id].tsx`'s own `toCard` already established.
+export function badgeForDetails(
+  type: 'gem' | 'equipment',
+  details: ListingSpecDetails | null | undefined,
+) {
+  return type === 'gem' ? (details?.species ?? 'Gem') : (details?.equipmentType ?? 'Equipment')
+}

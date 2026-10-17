@@ -1,12 +1,20 @@
 import { useAuth, useUser } from '@clerk/expo'
-import { gemTones } from '@ceylon-gems/ui-tokens'
+import { gemTones, neutral } from '@ceylon-gems/ui-tokens'
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import Slider from '@react-native-community/slider'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   BottomNavBar,
@@ -34,15 +42,69 @@ import { LiveGradientBackground } from '../components/primitives/LiveGradientBac
 import { PressableScale } from '../components/primitives/PressableScale'
 import { useFilters } from '../hooks/useFilters'
 import { useFontFamily } from '../hooks/useFontFamily'
+import {
+  useListingSearch,
+  type ListingSearchParams,
+  type SearchHit,
+} from '../hooks/useListingSearch'
 import { useToggleFavorite } from '../hooks/useToggleFavorite'
 import { useTranslation } from '../hooks/useTranslation'
-import { featuredListings, type Listing } from '../lib/listings'
+import { usdRateFor } from '../lib/currency'
+import { badgeForDetails, specForDetails } from '../lib/listingSpec'
 import { useCurrency } from '../providers/CurrencyProvider'
 import { useFavorites } from '../providers/FavoritesProvider'
 import { useGemTone } from '../providers/GemToneProvider'
 import { useNotifications } from '../providers/NotificationsProvider'
 const PAD = 22
 const GRID_GAP = 12
+const PRICE_MIN = 500
+const PRICE_MAX = 20000
+
+// Home's filter-sheet groups are DB-backed (`useFilters`, keyed by the
+// taxonomy's own display label — see that hook's comment), but only three
+// of its five groups have a matching real `GET /search` facet to filter
+// by: "Stone"/"Shape"/"Certificate"/"Origin" line up with `species`/
+// `shape`/`certAuthority`/`origin` on `gem_details` (and, now, the
+// Typesense index); "District" has no backing field anywhere (it's a
+// buyer-facing idea with no seller/listing location column yet) and is
+// deliberately left out of `FACET_PARAM_BY_GROUP` below — selecting one of
+// its chips still renders as an active filter chip (consistent UI), it
+// simply never narrows the real request.
+const FACET_PARAM_BY_GROUP: Record<
+  string,
+  keyof Pick<ListingSearchParams, 'species' | 'shape' | 'origin' | 'certAuthority'>
+> = {
+  Stone: 'species',
+  Shape: 'shape',
+  Origin: 'origin',
+  Certificate: 'certAuthority',
+}
+
+function facetParamsFromPicked(picked: Record<string, string[]>) {
+  const params: Partial<ListingSearchParams> = {}
+  for (const [group, field] of Object.entries(FACET_PARAM_BY_GROUP)) {
+    const values = picked[group]
+    if (values?.length) params[field] = values
+  }
+  return params
+}
+
+// Serializes the same `q`/`picked`/`price` state driving Home's own live
+// grid into `/search-results`' query params, so "View all" and the filter
+// sheet's "Show N results" button both land on the full, paginated version
+// of exactly what's currently on screen rather than a second, disconnected
+// query.
+function buildSearchResultsHref(query: string, picked: Record<string, string[]>, price: number) {
+  const qs = new URLSearchParams()
+  const trimmed = query.trim()
+  if (trimmed) qs.set('q', trimmed)
+  for (const [field, values] of Object.entries(facetParamsFromPicked(picked))) {
+    if (values) qs.set(field, (values as string[]).join(','))
+  }
+  if (price < PRICE_MAX) qs.set('maxPriceCents', String(price * 100))
+  const search = qs.toString()
+  return search ? `/search-results?${search}` : '/search-results'
+}
 
 // Placeholder hero photo (Unsplash, free license, no attribution required)
 // — no real photo backend exists yet (see ListingCard.tsx's identical
@@ -65,15 +127,18 @@ function useGreeting() {
 }
 
 // UI + real signed-in state per the "Ceylon Gem Exchange Home.dc.html"
-// design. No listings/search backend exists yet (see CLAUDE.md's "Current
-// sequencing"), so `featuredListings` is placeholder demo data and search/
-// filtering only narrow that local array rather than hitting Typesense —
-// the filter sheet's taxonomy itself (`useFilters`) is real, DB-backed data
-// though (see apps/api/src/filters). The mockup's `position:sticky` search bar and filter-
-// chips row are rendered as plain scrolling content, not truly sticky —
-// FlashList v2 has no `stickyHeaderIndices` equivalent for header content,
-// and reaching for one would mean restructuring the header into typed list
-// items for a secondary polish behavior; deferred rather than done partially.
+// design. The "Featured lots" grid is a real, live `GET /search` feed now
+// (see useListingSearch) — search box typing and filter-sheet picks/price
+// all narrow it in place, debounced, exactly like the mockup's own local-JS
+// filtering used to, just hitting Typesense instead of a static array. The
+// filter sheet's taxonomy itself (`useFilters`) was already real, DB-backed
+// data (see apps/api/src/filters); only "District" (see
+// FACET_PARAM_BY_GROUP's own comment) still has no real effect on results.
+// The mockup's `position:sticky` search bar and filter-chips row are
+// rendered as plain scrolling content, not truly sticky — FlashList v2 has
+// no `stickyHeaderIndices` equivalent for header content, and reaching for
+// one would mean restructuring the header into typed list items for a
+// secondary polish behavior; deferred rather than done partially.
 export default function HomeScreen() {
   const t = useTranslation()
   const fonts = useFontFamily()
@@ -84,7 +149,7 @@ export default function HomeScreen() {
   const { user } = useUser()
   const { gemTone } = useGemTone()
   const tone = gemTones[gemTone]
-  const { formatPrice } = useCurrency()
+  const { formatPrice, currencies } = useCurrency()
   const { unreadCount } = useNotifications()
 
   const filterData = useFilters()
@@ -92,10 +157,24 @@ export default function HomeScreen() {
 
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<PickedFilters>(emptyPicked)
-  const [price, setPrice] = useState(12000)
+  // Unfiltered state is the slider's own max (20000), matching the Reset
+  // button's `setPrice(PRICE_MAX)` below — there's no separate "filter
+  // active" flag, so these two have to agree on what "no limit" means.
+  const [price, setPrice] = useState(PRICE_MAX)
   const [filterOpen, setFilterOpen] = useState(false)
   const { likedIds } = useFavorites()
   const toggleLike = useToggleFavorite()
+
+  const searchParams = useMemo<ListingSearchParams>(
+    () => ({
+      q: query.trim() || undefined,
+      ...facetParamsFromPicked(picked),
+      maxPriceCents: price < PRICE_MAX ? price * 100 : undefined,
+      perPage: 20,
+    }),
+    [query, picked, price],
+  )
+  const { hits, found, loading, error } = useListingSearch(searchParams)
   // Profile, Chat, and Saved all navigate to real screens (Profile's hub,
   // the Chats inbox, and the real Favourites screen — see app/chats.tsx /
   // app/favourites.tsx) that each have their own copy of this same shared
@@ -142,16 +221,12 @@ export default function HomeScreen() {
   )
   const hasFilters = activeChips.length > 0
 
-  const resultCount = Math.max(3, 42 - activeChips.length * 6 - (price < 6000 ? 12 : 0))
-
-  const filteredListings = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return featuredListings
-    return featuredListings.filter((item) => item.name.toLowerCase().includes(q))
-  }, [query])
+  function goToSearchResults() {
+    router.push(buildSearchResultsHref(query, picked, price) as never)
+  }
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<Listing>) => (
+    ({ item, index }: ListRenderItemInfo<SearchHit>) => (
       <View
         style={[
           styles.gridItem,
@@ -159,17 +234,17 @@ export default function HomeScreen() {
         ]}
       >
         <ListingCard
-          name={item.name}
-          spec={item.spec}
-          priceUsd={item.priceUsd}
-          badge={item.badge}
+          name={item.title}
+          spec={specForDetails(item.type, item)}
+          priceUsd={item.priceAmountCents / 100 / usdRateFor(currencies, item.priceCurrency)}
+          badge={badgeForDetails(item.type, item)}
           liked={likedIds.has(item.id)}
           onToggleLike={() => toggleLike(item.id)}
           onPress={() => router.push(`/listing/${item.id}`)}
         />
       </View>
     ),
-    [likedIds, toggleLike, router],
+    [likedIds, toggleLike, router, currencies],
   )
 
   if (isLoaded && !isSignedIn) {
@@ -233,11 +308,20 @@ export default function HomeScreen() {
         </View>
 
         <FlashList
-          data={filteredListings}
+          data={hits}
           keyExtractor={(item) => item.id}
           numColumns={2}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            loading ? (
+              <ActivityIndicator color={neutral.white} style={styles.listStateSpacer} />
+            ) : (
+              <Text style={[styles.emptyListText, { fontFamily: fonts.semibold }]}>
+                {error ? t.common.genericError : t.searchResults.emptyTitle}
+              </Text>
+            )
+          }
           ListHeaderComponent={
             <>
               <View style={styles.hero}>
@@ -259,6 +343,7 @@ export default function HomeScreen() {
                 <SearchBar
                   value={query}
                   onChangeText={setQuery}
+                  onSubmitEditing={goToSearchResults}
                   placeholder={t.home.searchPlaceholder}
                   leftIcon={<SearchIcon />}
                   radius={18}
@@ -328,7 +413,7 @@ export default function HomeScreen() {
                 <Text style={[styles.sectionTitle, { fontFamily: fonts.extrabold }]}>
                   {t.home.featuredTitle}
                 </Text>
-                <PressableScale onPress={() => router.push('/all-listings')} hitSlop={8}>
+                <PressableScale onPress={goToSearchResults} hitSlop={8}>
                   <Text
                     style={[styles.sectionLink, { fontFamily: fonts.bold, color: tone.accent }]}
                   >
@@ -428,8 +513,8 @@ export default function HomeScreen() {
               </Text>
             </View>
             <Slider
-              minimumValue={500}
-              maximumValue={20000}
+              minimumValue={PRICE_MIN}
+              maximumValue={PRICE_MAX}
               step={500}
               value={price}
               onValueChange={setPrice}
@@ -444,7 +529,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => {
               setPicked(emptyPicked)
-              setPrice(20000)
+              setPrice(PRICE_MAX)
             }}
             style={styles.resetButton}
           >
@@ -458,7 +543,10 @@ export default function HomeScreen() {
               style={[styles.applyButton, { borderColor: `rgba(${tone.rim},0.5)` }]}
             >
               <Text style={[styles.applyLabel, { fontFamily: fonts.bold }]}>
-                {t.home.showResultsCount.replace('{{count}}', String(resultCount))}
+                {/* `found` — the live count for this exact query/filter/price
+                    state, from the same useListingSearch call already
+                    driving the grid below, not a synthetic formula. */}
+                {t.home.showResultsCount.replace('{{count}}', String(found))}
               </Text>
             </LinearGradient>
           </Pressable>
@@ -602,6 +690,15 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: PAD,
+  },
+  listStateSpacer: {
+    marginTop: 40,
+  },
+  emptyListText: {
+    marginTop: 40,
+    textAlign: 'center',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
   },
   hero: {
     position: 'relative',

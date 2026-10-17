@@ -38,6 +38,7 @@ export const LISTINGS_SCHEMA: CollectionCreateSchema = {
     { name: 'title', type: 'string' },
     { name: 'description', type: 'string', optional: true },
     { name: 'species', type: 'string', facet: true, optional: true },
+    { name: 'shape', type: 'string', facet: true, optional: true },
     { name: 'caratWeight', type: 'float', facet: true, optional: true },
     { name: 'treatment', type: 'string', facet: true, optional: true },
     { name: 'certAuthority', type: 'string', facet: true, optional: true },

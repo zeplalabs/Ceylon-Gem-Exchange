@@ -184,6 +184,8 @@ interface SearchBarProps {
   value: string
   onChangeText: (text: string) => void
   onClear?: () => void
+  /** Fires on the keyboard's own "search" key — Home uses this to push to the real Search Results screen instead of (or alongside) its own live in-place filtering. */
+  onSubmitEditing?: () => void
   placeholder?: string
   /** Screen-reader label for the clear (✕) button — pass a translated string; defaults to English. */
   clearAccessibilityLabel?: string
@@ -198,6 +200,7 @@ export function SearchBar({
   value,
   onChangeText,
   onClear,
+  onSubmitEditing,
   placeholder,
   clearAccessibilityLabel = 'Clear search',
   leftIcon,
@@ -212,6 +215,7 @@ export function SearchBar({
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onSubmitEditing={onSubmitEditing}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.4)"
         accessibilityLabel={placeholder}
